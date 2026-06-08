@@ -1,0 +1,22 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# ChromaDB 向量库（自动生成，含二进制数据）
+chroma_db/
+
+# 用户上传的文档（不入库）
+docs/
+
+# IDE
+.idea/
+.vscode/
+
+# 日志
+*.log
+
+# 环境变量
+.env
