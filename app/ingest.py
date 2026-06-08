@@ -8,13 +8,13 @@ from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import PyPDFLoader, TextLoader
 from langchain_ollama import OllamaEmbeddings
-from config import (
+from app.config import (
     DOCS_DIR, CHROMA_DB_DIR, EMBEDDING_MODEL, OLLAMA_BASE_URL,
     VLLM_BASE_URL, VLLM_EMBEDDING_MODEL, DEFAULT_BACKEND,
     CHUNK_SIZE, CHUNK_OVERLAP,
 )
 import chromadb
-from logger import setup_logger
+from app.logger import setup_logger
 
 logger = setup_logger(__name__)
 
@@ -67,7 +67,7 @@ def split_documents(docs: List[Document]) -> List[Document]:
     chunks = splitter.split_documents(docs)
     logger.info(f"文本分块: {len(docs)} 文档 -> {len(chunks)} 个块 (size={CHUNK_SIZE}, overlap={CHUNK_OVERLAP})")
     for i, chunk in enumerate(chunks[:10]):
-        logger.info(f"  chunk[{i}]: {chunk.page_content[:150]}...")
+        logger.info(f"  chunk[{i}]: {chunk.page_content[:500]}...")
     return chunks
 
 

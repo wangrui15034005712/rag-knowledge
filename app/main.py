@@ -6,10 +6,10 @@ import streamlit as st
 from pathlib import Path
 import time
 
-from config import DOCS_DIR, OLLAMA_BASE_URL, VLLM_BASE_URL, DEFAULT_BACKEND
-from ingest import ingest_documents, get_file_hash, get_chroma_client, get_indexed_hashes
-from rag_chain import get_answer_stream, clear_memory
-from logger import setup_logger
+from app.config import DOCS_DIR, OLLAMA_BASE_URL, VLLM_BASE_URL, DEFAULT_BACKEND
+from app.ingest import ingest_documents, get_file_hash, get_chroma_client, get_indexed_hashes
+from app.rag_chain import get_answer_stream, clear_memory
+from app.logger import setup_logger
 
 logger = setup_logger(__name__)
 

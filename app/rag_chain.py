@@ -16,13 +16,13 @@ from langchain_classic.chains.combine_documents import create_stuff_documents_ch
 from langchain_chroma import Chroma
 from langchain_core.documents import Document
 
-from config import (
+from app.config import (
     OLLAMA_BASE_URL, LLM_MODEL, EMBEDDING_MODEL,
     VLLM_BASE_URL, VLLM_MODEL, DEFAULT_BACKEND,
     CHROMA_DB_DIR, TOP_K, MEMORY_WINDOW,
 )
-from ingest import get_embedding
-from logger import setup_logger
+from app.ingest import get_embedding
+from app.logger import setup_logger
 
 logger = setup_logger(__name__)
 

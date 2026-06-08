@@ -1,6 +1,6 @@
 import logging
 import sys
-from config import LOG_LEVEL, LOG_FORMAT
+from app.config import LOG_LEVEL, LOG_FORMAT
 
 
 def setup_logger(name: str) -> logging.Logger:

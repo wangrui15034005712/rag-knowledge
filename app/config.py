@@ -46,6 +46,6 @@ LOG_FORMAT = os.getenv("LOG_FORMAT", "%(asctime)s [%(levelname)s] %(name)s: %(me
 # ============================================================
 # 目录路径
 # ============================================================
-BASE_DIR = Path(__file__).parent
+BASE_DIR = Path(__file__).parent.parent
 CHROMA_DB_DIR = os.getenv("CHROMA_DB_DIR", str(BASE_DIR / "chroma_db"))
 DOCS_DIR = os.getenv("DOCS_DIR", str(BASE_DIR / "docs"))

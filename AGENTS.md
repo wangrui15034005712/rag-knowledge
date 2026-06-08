@@ -4,7 +4,7 @@
 
 ```bash
 cd D:\User\git\rag-test
-.\venv\Scripts\python.exe -m streamlit run main.py
+.\venv\Scripts\python.exe -m streamlit run app/main.py --server.port 8501
 # 浏览器打开 http://localhost:8501
 ```
 
@@ -12,17 +12,17 @@ cd D:\User\git\rag-test
 
 - **Streamlit + LangChain + ChromaDB**，所有组件纯本地（vLLM 可选远程）
 - 双后端：`ollama`（本地 Ollama）| `vllm`（远程 OpenAI 兼容 API）
-- 切换后端在 `config.py:15` 改 `DEFAULT_BACKEND`，或 Streamlit 侧边栏 radio
+- 切换后端在 `app/config.py:15` 改 `DEFAULT_BACKEND`，或 Streamlit 侧边栏 radio
 - vLLM 地址 `http://192.168.2.60:8888/v1`，兼容 OpenAI API 格式
 
 ## 关键目录
 
 | 路径 | 用途 |
 |------|------|
-| `main.py` | Streamlit UI 入口 |
-| `rag_chain.py` | RAG 检索链 + 流式输出 |
-| `ingest.py` | 文档解析 → 分块 → 嵌入 → 写入 ChromaDB |
-| `config.py` | 所有可调参数（模型名、chunk 大小、TOP_K 等） |
+| `app/main.py` | Streamlit UI 入口 |
+| `app/rag_chain.py` | RAG 检索链 + 流式输出 |
+| `app/ingest.py` | 文档解析 → 分块 → 嵌入 → 写入 ChromaDB |
+| `app/config.py` | 所有可调参数（模型名、chunk 大小、TOP_K 等） |
 | `docs/` | 上传文档存放目录 |
 | `chroma_db/` | ChromaDB 持久化目录（自动创建） |
 
