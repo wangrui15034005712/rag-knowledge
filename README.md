@@ -10,18 +10,51 @@
 - 流式输出（打字机效果）+ 引用来源展示
 - 支持 Ollama（本地）和 vLLM（远程 GPU）双后端
 
-## 快速开始
+## 快速开始（从零搭建）
+
+### 1. 创建虚拟环境（Python 3.12）
 
 ```bash
-# 1. 安装依赖
-pip install -r requirements.txt
-
-# 2. 启动（Ollama 需先运行 ollama serve）
-.\venv\Scripts\python.exe -m streamlit run app/main.py
-
-# 3. 浏览器打开 http://localhost:8501
-# 4. 上传文档 → 点击"导入到知识库" → 开始提问
+py -3.12 -m venv venv
 ```
+
+如果上述命令无效，请手动指定 Python 3.12 安装路径：
+
+```bash
+"C:\Program Files\Python312\python.exe" -m venv venv
+```
+
+### 2. 激活虚拟环境
+
+```bash
+# Windows PowerShell
+.\venv\Scripts\Activate.ps1
+
+# Windows CMD
+venv\Scripts\activate.bat
+```
+
+激活后终端前面会出现 `(venv)` 前缀。
+
+### 3. 安装依赖
+
+```bash
+pip install -r requirements.txt
+```
+
+### 4. 启动知识库
+
+```bash
+streamlit run app/main.py
+```
+
+浏览器打开 http://localhost:8501
+
+### 5. 使用流程
+
+1. 上传文档（PDF/Word/TXT）到 `docs/` 目录，或通过 UI 页面上传
+2. 点击侧边栏 **"导入到知识库"** 按钮
+3. 在输入框提问，等待流式回答
 
 ## 目录结构
 
