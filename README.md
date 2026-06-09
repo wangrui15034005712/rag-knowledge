@@ -69,6 +69,8 @@ rag-test/
 ├── docs/                    # 上传文档目录（手动放置或 UI 上传）
 ├── chroma_db/               # ChromaDB 持久化（自动生成）
 ├── venv/                    # 虚拟环境
+├── .env                     # 环境变量（API Key 等，不入库）
+├── .env.example             # 环境变量模板（可入库）
 └── requirements.txt
 ```
 
@@ -84,10 +86,11 @@ rag-test/
 | `VLLM_MODEL` | `qwen35-35b-a3b` | vLLM 侧 LLM 模型 |
 | `VLLM_EMBEDDING_MODEL` | `octen-embedding-4b` | vLLM 侧嵌入模型 |
 | `CHUNK_SIZE` | `300` | 文本分块大小（字符） |
-| `SILICONFLOW_LLM_MODEL` | `Qwen/Qwen3.6-27B` | SiliconFlow LLM 模型 |
-| `SILICONFLOW_EMBEDDING_MODEL` | `BAAI/bge-m3` | SiliconFlow 嵌入模型 |
-| `SILICONFLOW_API_KEY` | `your-siliconflow-api-key` | SiliconFlow API 密钥 |
-| `TOP_K` | `10` | 检索返回的最相关块数 |
+| `SILICONFLOW_LLM_MODEL` | `deepseek-ai/DeepSeek-V4-Flash` | SiliconFlow LLM 模型 |
+| `SILICONFLOW_EMBEDDING_MODEL` | `Qwen/Qwen3-Embedding-8B` | SiliconFlow 嵌入模型 |
+| `SILICONFLOW_API_KEY` | `（见 .env 文件）` | SiliconFlow API 密钥 |
+| `CHUNK_SIZE` | `500` | 文本分块大小（字符） |
+| `TOP_K` | `8` | 检索返回的最相关块数 |
 | `MEMORY_WINDOW` | `5` | 保留的对话轮数 |
 
 ## 切换后端
@@ -106,12 +109,15 @@ rag-test/
 | vLLM | `http://192.168.2.60:8888/v1` |
 | SiliconFlow | `https://api.siliconflow.cn/v1` |
 
-使用 SiliconFlow 前需在 `app/config.py` 中填入真实的 `SILICONFLOW_API_KEY`。
+使用 SiliconFlow 前需在项目根目录创建 `.env` 文件（参考 `.env.example`），填入真实的 `SILICONFLOW_API_KEY`。
 
 ## ⚠️ 注意事项
 
 - **Thinking 模型会破坏检索**：`qwen35-35b-a3b` 等 thinking 模型在改写搜索查询时会输出英文思考过程，导致 ChromaDB 匹配失效。应使用 `qwen2.5-32b`、`qwen35-9b` 等非 thinking 模型。
 - **文档需手动导入**：上传到 `docs/` 后需点击"导入到知识库"按钮，不走大 LLM，只走 embedding 模型。
+- **API Key 存于 `.env`**：密钥配置在项目根目录 `.env` 文件中，该文件已加入 `.gitignore`，不会因 git 操作泄露。
+- **按后端分 collection**：每个后端使用独立的 ChromaDB collection（`rag_knowledge_ollama` / `rag_knowledge_vllm` / `rag_knowledge_siliconflow`），避免不同嵌入模型的向量空间混叠。旧 `rag_knowledge` 集合需手动重建索引。
+- **引用来源搜索词高亮**：在折叠面板的文档片段中，与用户问题匹配的关键词会以 `<mark>` 标记高亮显示。
 - **Windows 网络**：`openai` SDK 底层 `httpx` 偶发 ReadTimeout，不影响 `requests`。
 
 ## 技术栈
@@ -120,7 +126,7 @@ rag-test/
 |------|------|
 | 框架 | LangChain 0.3.x |
 | 向量库 | ChromaDB |
-| 嵌入模型 | BGE-M3 / octen-embedding-4b |
+| 嵌入模型 | bge-m3 / octen-embedding-4b / Qwen3-Embedding-8B |
 | 文档解析 | PyPDF / docx2txt |
 | Web UI | Streamlit |
 | LLM 后端 | Ollama（本地）/ vLLM（远程）/ SiliconFlow（云 API） |

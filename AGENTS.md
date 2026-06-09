@@ -13,7 +13,7 @@ cd D:\User\git\rag-test
 - **Streamlit + LangChain + ChromaDB**，所有组件纯本地（vLLM / SiliconFlow 可选远程）
 - 三后端：`ollama`（本地 Ollama）| `vllm`（远程 OpenAI 兼容 API）| `siliconflow`（硅基流动 API）
 - 切换后端在 `app/config.py:30` 改 `DEFAULT_BACKEND`，或 Streamlit 侧边栏 radio
-- vLLM 地址 `http://192.168.2.60:8888/v1`；SiliconFlow 地址 `https://api.siliconflow.cn/v1`（需在 `config.py:25` 填 API Key）
+- vLLM 地址 `http://192.168.2.60:8888/v1`；SiliconFlow 地址 `https://api.siliconflow.cn/v1`（需在 `.env` 文件填 API Key）
 
 ## 关键目录
 
@@ -22,9 +22,11 @@ cd D:\User\git\rag-test
 | `app/main.py` | Streamlit UI 入口 |
 | `app/rag_chain.py` | RAG 检索链 + 流式输出 |
 | `app/ingest.py` | 文档解析 → 分块 → 嵌入 → 写入 ChromaDB |
-| `app/config.py` | 所有可调参数（模型名、chunk 大小、TOP_K、API Key 等） |
+| `app/config.py` | 所有可调参数（模型名、chunk 大小、TOP_K 等） |
 | `docs/` | 上传文档存放目录 |
 | `chroma_db/` | ChromaDB 持久化目录（自动创建） |
+| `.env` | 环境变量（API Key 等，不入库） |
+| `.env.example` | 环境变量模板（可入库） |
 
 ## 流程：提问 → 回答
 
@@ -42,9 +44,10 @@ cd D:\User\git\rag-test
 ## 文档导入
 
 - 上传文档到 `docs/` 后，需点击"导入到知识库"按钮（手动触发）
-- **不走大 LLM**，只走 embedding 模型（`bge-m3` / `octen-embedding-4b` / `BAAI/bge-m3` via SiliconFlow）
+- **不走大 LLM**，只走 embedding 模型（`bge-m3` / `octen-embedding-4b` / `Qwen3-Embedding-8B` via SiliconFlow）
 - 增量去重：SHA256 hash 对比，内容无变化自动跳过
 - 分块打印在导入日志中可见（前 2 个 chunk 预览）
+- **按后端分 collection**：各后端使用独立 ChromaDB 集合（`rag_knowledge_ollama` / `rag_knowledge_vllm` / `rag_knowledge_siliconflow`），避免不同 embedding 模型的向量空间混叠
 
 ## Debug 日志
 
@@ -60,3 +63,4 @@ cd D:\User\git\rag-test
 - `httpx`（openai SDK 底层）在 Windows 下偶发 ReadTimeout，`requests` 不受影响
 - `RunnableWithMessageHistory` 有 DeprecationWarning，但 langchain 0.3.x 仍可用
 - GBK 编码问题：含 `\xa0` 等内容日志到 console 可能崩溃，日志文件不受影响
+- 旧 `rag_knowledge` 集合不会自动迁移到新命名 `rag_knowledge_{backend}`，切换后端后需手动「重建索引」

@@ -22,7 +22,7 @@ from app.config import (
     SILICONFLOW_BASE_URL, SILICONFLOW_LLM_MODEL, SILICONFLOW_API_KEY,
     CHROMA_DB_DIR, TOP_K, MEMORY_WINDOW,
 )
-from app.ingest import get_embedding
+from app.ingest import get_embedding, collection_name_for_backend
 from app.logger import setup_logger
 
 logger = setup_logger(__name__)
@@ -74,7 +74,7 @@ def get_vector_store(backend: str = DEFAULT_BACKEND) -> Chroma:
     embedding = get_embedding(backend)
     logger.debug(f"加载向量库: {CHROMA_DB_DIR}")
     return Chroma(
-        collection_name="rag_knowledge",
+        collection_name=collection_name_for_backend(backend),
         embedding_function=embedding,
         persist_directory=CHROMA_DB_DIR,
     )

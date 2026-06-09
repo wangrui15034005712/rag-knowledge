@@ -5,9 +5,10 @@
 import streamlit as st
 from pathlib import Path
 import time
+import re
 
 from app.config import DOCS_DIR, OLLAMA_BASE_URL, VLLM_BASE_URL, SILICONFLOW_BASE_URL, SILICONFLOW_API_KEY, DEFAULT_BACKEND
-from app.ingest import ingest_documents, get_file_hash, get_chroma_client, get_indexed_hashes
+from app.ingest import ingest_documents, get_file_hash, get_chroma_client, get_indexed_hashes, collection_name_for_backend
 from app.rag_chain import get_answer_stream, clear_memory
 from app.logger import setup_logger
 
@@ -89,10 +90,10 @@ def get_docs_files() -> list:
 
 # ── 从 ChromaDB 获取已索引文件的 hash 映射 ──
 
-def get_indexed_sources() -> dict:
+def get_indexed_sources(backend: str) -> dict:
     try:
         client = get_chroma_client()
-        return get_indexed_hashes(client)
+        return get_indexed_hashes(client, backend)
     except Exception:
         return {}
 
@@ -100,7 +101,7 @@ def get_indexed_sources() -> dict:
 # ── 刷新文件导入状态（已导入 / 未导入） ──
 
 def refresh_indexed_status():
-    indexed = get_indexed_sources()
+    indexed = get_indexed_sources(st.session_state.backend)
     files = get_docs_files()
     status = {}
     for f in files:
@@ -116,13 +117,22 @@ def refresh_indexed_status():
 
 # ── 渲染引用来源面板（折叠框，展示匹配到的文档片段） ──
 
-def render_source_panel(sources):
+def highlight_keywords(text: str, query: str) -> str:
+    if not query:
+        return text
+    terms = [t for t in re.split(r"[\s,，。！？、；：""''()（）【】\[\]]+", query) if len(t) >= 2]
+    for term in terms:
+        text = re.sub(re.escape(term), lambda m: f"<mark>{m.group(0)}</mark>", text, flags=re.IGNORECASE)
+    return text
+
+
+def render_source_panel(sources, query=""):
     seen = set()
     unique_sources = []
     for doc in sources:
         src = doc.metadata.get("source", "未知来源")
         page = doc.metadata.get("page", "")
-        content = doc.page_content[:200]
+        content = highlight_keywords(doc.page_content[:200], query)
         key = f"{src}_{page}"
         if key not in seen:
             seen.add(key)
@@ -136,7 +146,7 @@ def render_source_panel(sources):
             fname = Path(src).name
             page_str = f"P.{page}" if page != "" else ""
             st.markdown(f"**{fname}** {page_str}")
-            st.markdown(f"`{content}...`")
+            st.markdown(f"<pre style='white-space:pre-wrap;font-size:0.9em'>{content}...</pre>", unsafe_allow_html=True)
             st.divider()
 
 
@@ -222,9 +232,10 @@ with st.sidebar:
             with st.spinner("正在重建索引..."):
                 try:
                     client = get_chroma_client()
+                    collection_name = collection_name_for_backend(st.session_state.backend)
                     try:
-                        client.delete_collection("rag_knowledge")
-                        logger.debug("已删除旧集合 rag_knowledge")
+                        client.delete_collection(collection_name)
+                        logger.debug(f"已删除集合 {collection_name}")
                     except Exception:
                         pass
                     time.sleep(0.5)
@@ -292,7 +303,7 @@ for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
         if "sources" in msg and msg["sources"]:
-            render_source_panel(msg["sources"])
+            render_source_panel(msg["sources"], msg.get("query", ""))
 
 # 用户输入 → 提问
 if prompt := st.chat_input("💬 输入问题..."):
@@ -324,13 +335,14 @@ if prompt := st.chat_input("💬 输入问题..."):
 
             # 显示引用来源
             if sources:
-                render_source_panel(sources)
+                render_source_panel(sources, prompt)
 
             # 保存到对话历史
             st.session_state.messages.append({
                 "role": "assistant",
                 "content": full_response,
                 "sources": sources,
+                "query": prompt,
             })
             logger.info(f"回答完成，引用 {len(sources)} 个来源")
 

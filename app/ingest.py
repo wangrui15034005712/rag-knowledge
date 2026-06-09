@@ -105,11 +105,16 @@ def get_chroma_client():
     return chromadb.PersistentClient(path=CHROMA_DB_DIR)
 
 
+def collection_name_for_backend(backend: str) -> str:
+    return f"rag_knowledge_{backend}"
+
+
 # ── 获取已索引文件的哈希表（用于增量跳过） ──
 
-def get_indexed_hashes(client) -> Dict[str, str]:
+def get_indexed_hashes(client, backend: str = DEFAULT_BACKEND) -> Dict[str, str]:
+    collection_name = collection_name_for_backend(backend)
     try:
-        collection = client.get_collection("rag_knowledge")
+        collection = client.get_collection(collection_name)
         results = collection.get(include=["metadatas"])
         hashes = {}
         if results["metadatas"]:
@@ -128,8 +133,9 @@ def get_indexed_hashes(client) -> Dict[str, str]:
 def ingest_documents(filepaths: List[str], backend: str = DEFAULT_BACKEND) -> Dict[str, str]:
     logger.info(f"开始导入 {len(filepaths)} 个文档 (backend={backend})")
     chroma_client = get_chroma_client()
-    collection = chroma_client.get_or_create_collection("rag_knowledge")
-    indexed = get_indexed_hashes(chroma_client)
+    collection_name = collection_name_for_backend(backend)
+    collection = chroma_client.get_or_create_collection(collection_name)
+    indexed = get_indexed_hashes(chroma_client, backend)
 
     embedding_fn = get_embedding(backend)
     results = {}

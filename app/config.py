@@ -1,6 +1,9 @@
 # config.py — 全局配置（支持通过环境变量覆盖默认值）
 import os
 from pathlib import Path
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # ============================================================
 # Ollama（本地 LLM）
@@ -22,7 +25,7 @@ VLLM_EMBEDDING_MODEL = os.getenv("VLLM_EMBEDDING_MODEL", "octen-embedding-4b")
 SILICONFLOW_BASE_URL = os.getenv("SILICONFLOW_BASE_URL", "https://api.siliconflow.cn/v1")
 SILICONFLOW_LLM_MODEL = os.getenv("SILICONFLOW_LLM_MODEL", "deepseek-ai/DeepSeek-V4-Flash")
 SILICONFLOW_EMBEDDING_MODEL = os.getenv("SILICONFLOW_EMBEDDING_MODEL", "Qwen/Qwen3-Embedding-8B")
-SILICONFLOW_API_KEY = os.getenv("SILICONFLOW_API_KEY", "*************")
+SILICONFLOW_API_KEY = os.getenv("SILICONFLOW_API_KEY", "")
 
 # ============================================================
 # 默认后端：ollama | vllm | siliconflow

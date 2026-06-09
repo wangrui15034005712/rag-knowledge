@@ -59,6 +59,8 @@ rag-test/
 ├── docs/                # 上传文档存放目录
 ├── chroma_db/           # ChromaDB 持久化目录（自动创建）
 ├── venv/                # 虚拟环境
+├── .env                 # 环境变量（API Key 等，不入库）
+├── .env.example         # 环境变量模板（可入库）
 ├── requirements.txt     # Python 依赖
 └── PLAN.md              # 项目计划文档
 ```
@@ -123,13 +125,13 @@ rag-test/
 | `VLLM_MODEL` | `qwen35-35b-a3b` | vLLM LLM 模型 |
 | `VLLM_EMBEDDING_MODEL` | `octen-embedding-4b` | vLLM 嵌入模型 |
 | `SILICONFLOW_BASE_URL` | `https://api.siliconflow.cn/v1` | SiliconFlow 服务地址 |
-| `SILICONFLOW_LLM_MODEL` | `Qwen/Qwen3.6-27B` | SiliconFlow LLM 模型 |
-| `SILICONFLOW_EMBEDDING_MODEL` | `BAAI/bge-m3` | SiliconFlow 嵌入模型 |
-| `SILICONFLOW_API_KEY` | `your-siliconflow-api-key` | SiliconFlow API 密钥 |
+| `SILICONFLOW_LLM_MODEL` | `deepseek-ai/DeepSeek-V4-Flash` | SiliconFlow LLM 模型 |
+| `SILICONFLOW_EMBEDDING_MODEL` | `Qwen/Qwen3-Embedding-8B` | SiliconFlow 嵌入模型 |
+| `SILICONFLOW_API_KEY` | `（见 .env 文件）` | SiliconFlow API 密钥 |
 | `DEFAULT_BACKEND` | `ollama` | 默认后端：ollama/vllm/siliconflow |
-| `CHUNK_SIZE` | `300` | 文本块大小（字符数） |
+| `CHUNK_SIZE` | `500` | 文本块大小（字符数） |
 | `CHUNK_OVERLAP` | `100` | 块间重叠字符数 |
-| `TOP_K` | `10` | 检索返回的最相关片段数 |
+| `TOP_K` | `8` | 检索返回的最相关片段数 |
 | `MEMORY_WINDOW` | `5` | 对话记忆保留轮数 |
 | `CHROMA_DB_DIR` | `./chroma_db` | 向量库持久化路径 |
 | `DOCS_DIR` | `./docs` | 文档存放路径 |
@@ -140,6 +142,9 @@ rag-test/
 - `load_document(filepath: str) -> List[Document]` — 根据扩展名调用不同 Loader
 - `split_documents(docs: List[Document]) -> List[Document]` — RecursiveCharacterTextSplitter 分块
 - `get_embedding(backend: str) -> Embeddings` — 按后端返回嵌入模型（OllamaEmbeddings / OpenAIEmbeddings）
+- `collection_name_for_backend(backend: str) -> str` — 返回 `rag_knowledge_{backend}`，各后端独立 collection
+- `get_chroma_client() -> Client` — 连接 ChromaDB 持久化客户端
+- `get_indexed_hashes(client, backend: str) -> Dict` — 获取指定后端的已索引文件哈希表
 - `get_vector_store(backend: str) -> Chroma` — 加载/创建 ChromaDB（持久化）
 - `ingest_documents(filepaths: List[str], backend: str) -> Dict` — 增量导入：对每个文件计算 hash，查询 ChromaDB `file_hash` metadata 判断是否已存在，不存在则解析 → 分块 → 嵌入 → 存入
 
@@ -172,10 +177,10 @@ rag-test/
 
 **侧边栏逻辑：**
 1. `st.file_uploader` 接收上传 → 保存到 `docs/`
-2. 刷新文件列表，读取 `docs/` 全部文件
+2. 刷新文件列表，读取 `docs/` 全部文件（按当前后端查询 ChromaDB）
 3. 查询 ChromaDB 已索引的 hash 集合，对比标记 ☑/☐
 4. "导入"按钮 → 调用 `ingest_documents()`（显示进度）
-5. "重建索引"按钮 → 重新扫描全部
+5. "重建索引"按钮 → 删除当前后端 collection 后重新导入
 6. 显示当前后端连接状态（Ollama / vLLM / SiliconFlow）
 
 **主区逻辑：**
@@ -184,8 +189,8 @@ rag-test/
 3. 遍历 messages 渲染历史对话
 4. `st.chat_input` 接收用户输入
 5. 调用 `get_answer_stream()` 流式输出
-6. 输出完成后渲染引用来源折叠面板
-7. 新消息追加到 messages，保留 <= 5 轮
+6. 输出完成后渲染引用来源折叠面板（`highlight_keywords` 高亮匹配词）
+7. 新消息追加到 messages（含 `query` 字段，保留 <= 5 轮）
 
 ## 功能清单
 
@@ -197,11 +202,12 @@ rag-test/
 - [x] 重建知识库索引（增量刷新）
 - [x] 显示已导入文档数量
 - [x] 后端连接状态指示器（Ollama / vLLM / SiliconFlow）
+- [x] 按后端独立 collection（`rag_knowledge_{backend}`）
 
 ### 问答交互（主区域）
 - [x] 聊天式问答界面
 - [x] 流式输出（打字机效果）
-- [x] 展示引用来源（折叠面板，文件名 + 页码 + 片段）
+- [x] 展示引用来源（折叠面板，文件名 + 页码 + 片段 + 搜索词高亮）
 - [x] 多轮对话记忆（最多保留最近 5 轮）
 - [x] 清空对话记录
 - [x] 后端连接异常提示（按当前后端显示）
@@ -241,3 +247,6 @@ ollama serve
 5. 添加 vLLM 远程后端
 6. 添加 SiliconFlow 云 API 后端
 7. 全文打印调试日志（无截断）
+8. 添加 SiliconFlow 云 API 后端（.env 密钥管理）
+9. 每个后端独立 ChromaDB collection
+10. 引用来源搜索词高亮
