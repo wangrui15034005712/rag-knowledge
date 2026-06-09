@@ -6,7 +6,7 @@ import streamlit as st
 from pathlib import Path
 import time
 
-from app.config import DOCS_DIR, OLLAMA_BASE_URL, VLLM_BASE_URL, DEFAULT_BACKEND
+from app.config import DOCS_DIR, OLLAMA_BASE_URL, VLLM_BASE_URL, SILICONFLOW_BASE_URL, SILICONFLOW_API_KEY, DEFAULT_BACKEND
 from app.ingest import ingest_documents, get_file_hash, get_chroma_client, get_indexed_hashes
 from app.rag_chain import get_answer_stream, clear_memory
 from app.logger import setup_logger
@@ -61,6 +61,19 @@ def check_vllm():
         return ok
     except Exception:
         logger.warning(f"vLLM 连接失败: {VLLM_BASE_URL}")
+        return False
+
+
+def check_siliconflow():
+    try:
+        import requests
+        headers = {"Authorization": f"Bearer {SILICONFLOW_API_KEY}"}
+        r = requests.get(f"{SILICONFLOW_BASE_URL}/models", headers=headers, timeout=3)
+        ok = r.status_code == 200
+        logger.debug(f"SiliconFlow 连接状态: {'正常' if ok else '失败'}")
+        return ok
+    except Exception:
+        logger.warning(f"SiliconFlow 连接失败: {SILICONFLOW_BASE_URL}")
         return False
 
 
@@ -135,10 +148,11 @@ with st.sidebar:
     st.header("📁 文档管理")
 
     # LLM 后端切换
+    backend_index = {"ollama": 0, "vllm": 1, "siliconflow": 2}
     st.session_state.backend = st.radio(
         "LLM 后端",
-        ["ollama", "vllm"],
-        index=0 if st.session_state.backend == "ollama" else 1,
+        ["ollama", "vllm", "siliconflow"],
+        index=backend_index.get(st.session_state.backend, 0),
         horizontal=True,
     )
 
@@ -238,6 +252,11 @@ with st.sidebar:
         st.caption(
             f"{'🟢' if vllm_ok else '🔴'} vLLM: {'已连接' if vllm_ok else '未连接'}"
         )
+    elif backend == "siliconflow":
+        siliconflow_ok = check_siliconflow()
+        st.caption(
+            f"{'🟢' if siliconflow_ok else '🔴'} SiliconFlow: {'已连接' if siliconflow_ok else '未连接'}"
+        )
     else:
         ollama_ok = check_ollama()
         st.caption(
@@ -326,6 +345,9 @@ backend = st.session_state.backend
 if backend == "vllm":
     if not check_vllm() and not st.session_state.messages:
         st.info("🔴 vLLM 未连接，请确保远程 vLLM 服务已启动")
+elif backend == "siliconflow":
+    if not check_siliconflow() and not st.session_state.messages:
+        st.info("🔴 SiliconFlow 未连接，请检查 API Key 和网络")
 else:
     if not check_ollama() and not st.session_state.messages:
         st.info(

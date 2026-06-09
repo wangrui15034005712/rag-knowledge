@@ -8,7 +8,7 @@
 - 自动解析、分块、向量化，存入 ChromaDB
 - 多轮对话，历史记忆中检索
 - 流式输出（打字机效果）+ 引用来源展示
-- 支持 Ollama（本地）和 vLLM（远程 GPU）双后端
+- 支持 Ollama（本地）、vLLM（远程 GPU）、SiliconFlow（硅基流动 API）三后端
 
 ## 快速开始（从零搭建）
 
@@ -78,23 +78,35 @@ rag-test/
 
 | 参数 | 默认值 | 说明 |
 |------|--------|------|
-| `DEFAULT_BACKEND` | `ollama` | 后端：`ollama` / `vllm` |
+| `DEFAULT_BACKEND` | `ollama` | 后端：`ollama` / `vllm` / `siliconflow` |
 | `LLM_MODEL` | `qwen2.5:7b` | 本地 LLM 模型 |
 | `EMBEDDING_MODEL` | `bge-m3` | 本地嵌入模型 |
 | `VLLM_MODEL` | `qwen35-35b-a3b` | vLLM 侧 LLM 模型 |
 | `VLLM_EMBEDDING_MODEL` | `octen-embedding-4b` | vLLM 侧嵌入模型 |
 | `CHUNK_SIZE` | `300` | 文本分块大小（字符） |
-| `TOP_K` | `4` | 检索返回的最相关块数 |
+| `SILICONFLOW_LLM_MODEL` | `Qwen/Qwen3.6-27B` | SiliconFlow LLM 模型 |
+| `SILICONFLOW_EMBEDDING_MODEL` | `BAAI/bge-m3` | SiliconFlow 嵌入模型 |
+| `SILICONFLOW_API_KEY` | `your-siliconflow-api-key` | SiliconFlow API 密钥 |
+| `TOP_K` | `10` | 检索返回的最相关块数 |
 | `MEMORY_WINDOW` | `5` | 保留的对话轮数 |
 
 ## 切换后端
 
-两种方式：
+三种方式：
 
-1. **Streamlit 侧边栏** — radio 按钮切换 `ollama` / `vllm`
+1. **Streamlit 侧边栏** — radio 按钮切换 `ollama` / `vllm` / `siliconflow`
 2. **改配置** — 修改 `app/config.py` 的 `DEFAULT_BACKEND`
+3. **环境变量** — `$env:DEFAULT_BACKEND="siliconflow"`
 
-vLLM 地址：`http://192.168.2.60:8888/v1`，兼容 OpenAI API 格式。
+各后端地址：
+
+| 后端 | 地址 |
+|------|------|
+| Ollama | `http://localhost:11434` |
+| vLLM | `http://192.168.2.60:8888/v1` |
+| SiliconFlow | `https://api.siliconflow.cn/v1` |
+
+使用 SiliconFlow 前需在 `app/config.py` 中填入真实的 `SILICONFLOW_API_KEY`。
 
 ## ⚠️ 注意事项
 
@@ -111,4 +123,4 @@ vLLM 地址：`http://192.168.2.60:8888/v1`，兼容 OpenAI API 格式。
 | 嵌入模型 | BGE-M3 / octen-embedding-4b |
 | 文档解析 | PyPDF / docx2txt |
 | Web UI | Streamlit |
-| LLM 后端 | Ollama（本地）/ vLLM（远程） |
+| LLM 后端 | Ollama（本地）/ vLLM（远程）/ SiliconFlow（云 API） |

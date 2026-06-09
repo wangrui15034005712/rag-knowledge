@@ -19,6 +19,7 @@ from langchain_core.documents import Document
 from app.config import (
     OLLAMA_BASE_URL, LLM_MODEL, EMBEDDING_MODEL,
     VLLM_BASE_URL, VLLM_MODEL, DEFAULT_BACKEND,
+    SILICONFLOW_BASE_URL, SILICONFLOW_LLM_MODEL, SILICONFLOW_API_KEY,
     CHROMA_DB_DIR, TOP_K, MEMORY_WINDOW,
 )
 from app.ingest import get_embedding
@@ -34,14 +35,19 @@ sessions: Dict[str, ChatMessageHistory] = {}
 
 class LoggingCallbackHandler(BaseCallbackHandler):
     def on_chat_model_start(self, serialized, messages, **kwargs):
-        logger.info(f"--- LLM Prompt ---\n{messages[0][0].content[:500]}\n--- End Prompt ---")
+        log = "--- LLM Prompt (Full) ---\n"
+        for msg in messages[0]:
+            role = getattr(msg, "type", "MSG").upper()
+            log += f"\n=== {role} ===\n{msg.content}\n"
+        log += "--- End Prompt ---"
+        logger.info(log)
 
     def on_llm_start(self, serialized, prompts, **kwargs):
-        logger.info(f"--- LLM Prompt ---\n{prompts[0][:500]}\n--- End Prompt ---")
+        logger.info(f"--- LLM Prompt (Full) ---\n{prompts[0]}\n--- End Prompt ---")
 
     def on_llm_end(self, response, **kwargs):
         text = response.generations[0][0].text
-        logger.info(f"LLM 回答: {text[:300]}..." if len(text) > 300 else f"LLM 回答: {text}")
+        logger.info(f"--- LLM 回答 (Full) ---\n{text}\n--- End Answer ---")
 
     def on_retriever_start(self, serialized, query, **kwargs):
         logger.info(f"检索查询: {query}")
@@ -50,7 +56,7 @@ class LoggingCallbackHandler(BaseCallbackHandler):
         logger.info(f"检索结果: {len(documents)} 个文档块")
         for i, doc in enumerate(documents):
             src = Path(doc.metadata.get("source", "?")).name
-            logger.info(f"  [{i}] {src}: {doc.page_content[:150]}...")
+            logger.info(f"  [{i}] {src}:\n{doc.page_content}")
 
 
 # ── 根据 session_id 获取/创建会话历史 ──
@@ -88,6 +94,17 @@ def get_llm(backend: str = DEFAULT_BACKEND):
             model=VLLM_MODEL,
             base_url=VLLM_BASE_URL,
             api_key="none",
+            temperature=0.1,
+            streaming=True,
+            callbacks=[LoggingCallbackHandler()],
+        )
+    if backend == "siliconflow":
+        from langchain_openai import ChatOpenAI
+        logger.info(f"初始化 LLM(SiliconFlow): {SILICONFLOW_LLM_MODEL} @ {SILICONFLOW_BASE_URL}")
+        return ChatOpenAI(
+            model=SILICONFLOW_LLM_MODEL,
+            base_url=SILICONFLOW_BASE_URL,
+            api_key=SILICONFLOW_API_KEY,
             temperature=0.1,
             streaming=True,
             callbacks=[LoggingCallbackHandler()],

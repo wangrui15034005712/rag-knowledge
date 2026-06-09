@@ -11,6 +11,7 @@ from langchain_ollama import OllamaEmbeddings
 from app.config import (
     DOCS_DIR, CHROMA_DB_DIR, EMBEDDING_MODEL, OLLAMA_BASE_URL,
     VLLM_BASE_URL, VLLM_EMBEDDING_MODEL, DEFAULT_BACKEND,
+    SILICONFLOW_BASE_URL, SILICONFLOW_EMBEDDING_MODEL, SILICONFLOW_API_KEY,
     CHUNK_SIZE, CHUNK_OVERLAP,
 )
 import chromadb
@@ -81,6 +82,14 @@ def get_embedding(backend: str = DEFAULT_BACKEND):
             model=VLLM_EMBEDDING_MODEL,
             base_url=VLLM_BASE_URL,
             api_key="none",
+        )
+    if backend == "siliconflow":
+        from langchain_openai import OpenAIEmbeddings
+        logger.info(f"初始化嵌入模型(SiliconFlow): {SILICONFLOW_EMBEDDING_MODEL} @ {SILICONFLOW_BASE_URL}")
+        return OpenAIEmbeddings(
+            model=SILICONFLOW_EMBEDDING_MODEL,
+            base_url=SILICONFLOW_BASE_URL,
+            api_key=SILICONFLOW_API_KEY,
         )
     logger.debug(f"初始化嵌入模型(Ollama): {EMBEDDING_MODEL} @ {OLLAMA_BASE_URL}")
     return OllamaEmbeddings(

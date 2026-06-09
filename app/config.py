@@ -17,20 +17,28 @@ VLLM_MODEL = os.getenv("VLLM_MODEL", "qwen35-35b-a3b")
 VLLM_EMBEDDING_MODEL = os.getenv("VLLM_EMBEDDING_MODEL", "octen-embedding-4b")
 
 # ============================================================
-# 默认后端：ollama | vllm
+# SiliconFlow（硅基流动，兼容 OpenAI API 格式）
+# ============================================================
+SILICONFLOW_BASE_URL = os.getenv("SILICONFLOW_BASE_URL", "https://api.siliconflow.cn/v1")
+SILICONFLOW_LLM_MODEL = os.getenv("SILICONFLOW_LLM_MODEL", "deepseek-ai/DeepSeek-V4-Flash")
+SILICONFLOW_EMBEDDING_MODEL = os.getenv("SILICONFLOW_EMBEDDING_MODEL", "Qwen/Qwen3-Embedding-8B")
+SILICONFLOW_API_KEY = os.getenv("SILICONFLOW_API_KEY", "*************")
+
+# ============================================================
+# 默认后端：ollama | vllm | siliconflow
 # ============================================================
 DEFAULT_BACKEND = os.getenv("DEFAULT_BACKEND", "ollama")
 
 # ============================================================
 # 文本分块参数（导入文档时用于切分）
 # ============================================================
-CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", "300"))
+CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", "500"))
 CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "100"))
 
 # ============================================================
 # 检索参数
 # ============================================================
-TOP_K = int(os.getenv("TOP_K", "4"))
+TOP_K = int(os.getenv("TOP_K", "8"))
 
 # ============================================================
 # 多轮对话记忆窗口
