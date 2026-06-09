@@ -41,40 +41,24 @@ if "backend" not in st.session_state:
 
 # ── 检查后端服务是否存活 ──
 
-def check_ollama():
-    try:
-        import requests
-        r = requests.get(f"{OLLAMA_BASE_URL}/api/tags", timeout=3)
-        ok = r.status_code == 200
-        logger.debug(f"Ollama 连接状态: {'正常' if ok else '失败'}")
-        return ok
-    except Exception:
-        logger.warning(f"Ollama 连接失败: {OLLAMA_BASE_URL}")
-        return False
-
-
-def check_vllm():
-    try:
-        import requests
-        r = requests.get(f"{VLLM_BASE_URL}/models", timeout=3)
-        ok = r.status_code == 200
-        logger.debug(f"vLLM 连接状态: {'正常' if ok else '失败'}")
-        return ok
-    except Exception:
-        logger.warning(f"vLLM 连接失败: {VLLM_BASE_URL}")
-        return False
-
-
-def check_siliconflow():
-    try:
-        import requests
+def check_backend(backend: str) -> bool:
+    import requests
+    if backend == "ollama":
+        url, headers = f"{OLLAMA_BASE_URL}/api/tags", None
+    elif backend == "vllm":
+        url, headers = f"{VLLM_BASE_URL}/models", None
+    elif backend == "siliconflow":
+        url = f"{SILICONFLOW_BASE_URL}/models"
         headers = {"Authorization": f"Bearer {SILICONFLOW_API_KEY}"}
-        r = requests.get(f"{SILICONFLOW_BASE_URL}/models", headers=headers, timeout=3)
+    else:
+        return False
+    try:
+        r = requests.get(url, headers=headers, timeout=3)
         ok = r.status_code == 200
-        logger.debug(f"SiliconFlow 连接状态: {'正常' if ok else '失败'}")
+        logger.debug(f"{backend} 连接状态: {'正常' if ok else '失败'}")
         return ok
     except Exception:
-        logger.warning(f"SiliconFlow 连接失败: {SILICONFLOW_BASE_URL}")
+        logger.warning(f"{backend} 连接失败: {url}")
         return False
 
 
@@ -121,6 +105,7 @@ def highlight_keywords(text: str, query: str) -> str:
     if not query:
         return text
     terms = [t for t in re.split(r"[\s,，。！？、；：""''()（）【】\[\]]+", query) if len(t) >= 2]
+    terms.sort(key=len, reverse=True)
     for term in terms:
         text = re.sub(re.escape(term), lambda m: f"<mark>{m.group(0)}</mark>", text, flags=re.IGNORECASE)
     return text
@@ -258,21 +243,8 @@ with st.sidebar:
 
     # 后端连接状态指示器
     backend = st.session_state.backend
-    if backend == "vllm":
-        vllm_ok = check_vllm()
-        st.caption(
-            f"{'🟢' if vllm_ok else '🔴'} vLLM: {'已连接' if vllm_ok else '未连接'}"
-        )
-    elif backend == "siliconflow":
-        siliconflow_ok = check_siliconflow()
-        st.caption(
-            f"{'🟢' if siliconflow_ok else '🔴'} SiliconFlow: {'已连接' if siliconflow_ok else '未连接'}"
-        )
-    else:
-        ollama_ok = check_ollama()
-        st.caption(
-            f"{'🟢' if ollama_ok else '🔴'} Ollama: {'已连接' if ollama_ok else '未连接'}"
-        )
+    ok = check_backend(backend)
+    st.caption(f"{'🟢' if ok else '🔴'} {backend}: {'已连接' if ok else '未连接'}")
 
     # 导入进度统计
     files = get_docs_files()
@@ -354,14 +326,6 @@ if prompt := st.chat_input("💬 输入问题..."):
 
 # 首次启动时提示（后端未连接且无历史消息）
 backend = st.session_state.backend
-if backend == "vllm":
-    if not check_vllm() and not st.session_state.messages:
-        st.info("🔴 vLLM 未连接，请确保远程 vLLM 服务已启动")
-elif backend == "siliconflow":
-    if not check_siliconflow() and not st.session_state.messages:
-        st.info("🔴 SiliconFlow 未连接，请检查 API Key 和网络")
-else:
-    if not check_ollama() and not st.session_state.messages:
-        st.info(
-            "🔴 Ollama 未连接，请确保 Ollama 已启动（`ollama serve`）"
-        )
+if not check_backend(backend) and not st.session_state.messages:
+    msgs = {"ollama": "请确保 Ollama 已启动（`ollama serve`）", "vllm": "请确保远程 vLLM 服务已启动", "siliconflow": "请检查 API Key 和网络"}
+    st.info(f"🔴 {backend} 未连接，{msgs.get(backend, '请检查后端状态')}")
