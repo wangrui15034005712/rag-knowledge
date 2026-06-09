@@ -23,6 +23,8 @@ cd D:\User\git\rag-test
 | `app/rag_chain.py` | RAG 检索链 + 流式输出 |
 | `app/ingest.py` | 文档解析 → 分块 → 嵌入 → 写入 ChromaDB |
 | `app/config.py` | 所有可调参数（模型名、chunk 大小、TOP_K 等） |
+| `app/ocr_engine.py` | OCR 视觉识别引擎（base64 → 视觉 API → Markdown） |
+| `app/pages/1_OCR.py` | OCR 图片文字识别页面（独立 Streamlit 页面） |
 | `docs/` | 上传文档存放目录 |
 | `chroma_db/` | ChromaDB 持久化目录（自动创建） |
 | `.env` | 环境变量（API Key 等，不入库） |
@@ -57,6 +59,19 @@ cd D:\User\git\rag-test
 - 检索到的每个文档块全文
 - LLM 生成的完整回答
 - 日志级别在 `config.py:53` 设置 `LOG_LEVEL`
+
+## OCR 图片文字识别
+
+独立页面（`app/pages/1_OCR.py`），入口在 Streamlit 侧边栏自动出现。
+
+1. 侧边栏选择 OCR 后端（siliconflow / vllm）
+2. 上传一张图片（JPG / PNG / BMP / WebP）
+3. 点击「OCR 识别」→ 调用视觉 API（OpenAI 兼容格式，base64 传图）
+4. 展示渲染预览 + Markdown 源码（`st.code` 带复制按钮）
+
+**视觉模型**：`Qwen/Qwen3.5-35B-A3B`（原生多模态，支持 text + image + video 输入）
+**thinking 处理**：`ocr_engine.py:23` 的 `_clean_thinking()` 剥离 `<think>`/`<reasoning>` 标签
+**不保存文件**：识别结果仅预览，不写入 `docs/` 目录
 
 ## 已知问题
 

@@ -55,7 +55,11 @@ rag-test/
 │   ├── rag_chain.py     # RAG 检索链 + 流式输出
 │   ├── ingest.py        # 文档解析 → 分块 → 嵌入 → 入库
 │   ├── config.py        # 全局配置（模型名、chunk 大小、API Key 等）
-│   └── logger.py        # 日志工具
+│   ├── ocr_engine.py    # OCR 视觉识别引擎
+│   ├── logger.py        # 日志工具
+│   └── pages/
+│       ├── __init__.py
+│       └── 1_OCR.py     # OCR 图片文字识别页面
 ├── docs/                # 上传文档存放目录
 ├── chroma_db/           # ChromaDB 持久化目录（自动创建）
 ├── venv/                # 虚拟环境
@@ -95,6 +99,31 @@ rag-test/
 │              │  │ 💬 输入问题...          [发送 ➤]    │  │
 │              │  └────────────────────────────────────┘  │
 └──────────────┴───────────────────────────────────────────┘
+```
+
+### OCR 页面布局
+
+```
+┌──────────────────────────────────────────┐
+│  📄 OCR 图片文字识别                      │
+├──────────────────────────────────────────┤
+│  ┌─ 侧边栏 ──────────────────────────┐   │
+│  │  OCR 后端: [● siliconflow] [○ vllm] │   │
+│  └────────────────────────────────────┘   │
+│                                           │
+│  ┌─ 选择一张图片 [浏览...] ───────────┐   │
+│  │                                     │   │
+│  │  ┌─ 图片预览 ──┐  [🔄 OCR 识别]   │   │
+│  │  │  img.jpg    │                    │   │
+│  │  └─────────────┘                    │   │
+│  ├─────────────────────────────────────┤   │
+│  │  📝 预览 (渲染后的 Markdown)        │   │
+│  │  ┌─ Markdown 源码 (可复制) ─── [📋]│   │
+│  │  │ # OCR Result                    │   │
+│  │  │ This is the recognized text...  │   │
+│  │  └─────────────────────────────────┘   │
+│  └─────────────────────────────────────┘   │
+└──────────────────────────────────────────┘
 ```
 
 ## 交互说明
@@ -173,6 +202,22 @@ rag-test/
 基于对话历史和用户最新问题，生成一个独立表述的搜索查询。
 ```
 
+### `ocr_engine.py` — OCR 视觉识别
+
+- `ocr_image(image_bytes: bytes, backend: str, mime_type: str) -> str` — 图片 base64 编码 → 调用 OpenAI 视觉 API（SiliconFlow / vLLM）→ 返回 Markdown 文本
+- `_clean_thinking(text: str) -> str` — 剥离 thinking 模型的 `<think>`/`<reasoning>` 标签，只保留最终输出
+
+**视觉 API 格式：**
+```
+content = [
+    {"type": "image_url", "image_url": {"url": f"data:{mime};base64,{b64}"}},
+    {"type": "text", "text": "请完整识别图片中的所有文字，以 Markdown 格式输出..."}
+]
+```
+
+**模型**: `Qwen/Qwen3.5-35B-A3B`（原生多模态，text + image + video）
+**不保存文件**：识别结果仅返回字符串，由页面层渲染展示
+
 ### `main.py` — Streamlit UI
 
 **侧边栏逻辑：**
@@ -212,6 +257,13 @@ rag-test/
 - [x] 清空对话记录
 - [x] 后端连接异常提示（按当前后端显示）
 
+### OCR 图片文字识别（独立页面）
+- [x] 上传图片（单张，JPG/PNG/BMP/WebP）
+- [x] OCR 后端选择（siliconflow / vllm）
+- [x] 调用视觉 API 识别图片文字
+- [x] Markdown 预览 + 源码复制（`st.code`）
+- [x] Thinking 模型输出清洗（剥离 `<think>` 标签）
+
 ## 环境要求
 
 | 项目 | 最低要求 | 推荐配置 |
@@ -250,3 +302,4 @@ ollama serve
 8. 添加 SiliconFlow 云 API 后端（.env 密钥管理）
 9. 每个后端独立 ChromaDB collection
 10. 引用来源搜索词高亮
+11. OCR 图片文字识别（Qwen3.5-35B-A3B 多模态视觉模型，SiliconFlow + vLLM）

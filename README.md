@@ -9,6 +9,7 @@
 - 多轮对话，历史记忆中检索
 - 流式输出（打字机效果）+ 引用来源展示
 - 支持 Ollama（本地）、vLLM（远程 GPU）、SiliconFlow（硅基流动 API）三后端
+- OCR 图片文字识别（Qwen3.5-35B-A3B 多模态视觉模型，支持 SiliconFlow / vLLM）
 
 ## 快速开始（从零搭建）
 
@@ -65,7 +66,11 @@ rag-test/
 │   ├── rag_chain.py         # RAG 检索链 + 流式输出
 │   ├── ingest.py            # 文档解析 → 分块 → 嵌入 → 入库
 │   ├── config.py            # 全局配置
-│   └── logger.py            # 日志工具
+│   ├── ocr_engine.py        # OCR 视觉识别引擎
+│   ├── logger.py            # 日志工具
+│   └── pages/               # Streamlit 多页面
+│       ├── __init__.py
+│       └── 1_OCR.py         # OCR 图片文字识别
 ├── docs/                    # 上传文档目录（手动放置或 UI 上传）
 ├── chroma_db/               # ChromaDB 持久化（自动生成）
 ├── venv/                    # 虚拟环境
@@ -110,6 +115,19 @@ rag-test/
 | SiliconFlow | `https://api.siliconflow.cn/v1` |
 
 使用 SiliconFlow 前需在项目根目录创建 `.env` 文件（参考 `.env.example`），填入真实的 `SILICONFLOW_API_KEY`。
+
+## OCR 图片文字识别
+
+项目包含独立的 OCR 页面（Streamlit 侧边栏自动出现「OCR 图片文字识别」入口），功能：
+
+1. 上传图片（JPG / PNG / BMP / WebP，单张）
+2. 选择 OCR 后端（siliconflow / vllm）
+3. 点击「OCR 识别」按钮
+4. 下方展示：
+   - **渲染预览** — Markdown 格式化后的识别结果
+   - **Markdown 源码** — `st.code` 原生展示，带一键复制按钮
+
+使用的模型为 **Qwen/Qwen3.5-35B-A3B**（原生多模态视觉语言模型），通过 OpenAI 兼容的视觉 API（`data:image/...;base64`）传入图片。输出自动剥离 thinking 模型的 `<think>` 标签。
 
 ## ⚠️ 注意事项
 
