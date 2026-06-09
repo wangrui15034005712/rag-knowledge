@@ -79,3 +79,35 @@ cd D:\User\git\rag-test
 - `RunnableWithMessageHistory` 有 DeprecationWarning，但 langchain 0.3.x 仍可用
 - GBK 编码问题：含 `\xa0` 等内容日志到 console 可能崩溃，日志文件不受影响
 - 旧 `rag_knowledge` 集合不会自动迁移到新命名 `rag_knowledge_{backend}`，切换后端后需手动「重建索引」
+
+## Reranker 重排序
+
+在 ChromaDB 检索之后、LLM 生成之前插入精排，剔除噪音文档。
+
+### 关键文件
+
+| 文件 | 说明 |
+|------|------|
+| `app/reranker.py` | 重排序抽象层（当前仅 SiliconFlow 后端） |
+| `app/config.py:57-62` | 重排序配置项（RERANK_ENABLED, RERANK_TOP_K, SILICONFLOW_RERANK_MODEL） |
+| `app/rag_chain.py:90-101` | RerankerRetriever 包装器 |
+
+### 配置项
+
+| 环境变量 | 默认值 | 说明 |
+|----------|--------|------|
+| `RERANK_ENABLED` | `false` | 是否启用重排序 |
+| `RERANK_TOP_K` | `4` | 重排序后保留的文档块数 |
+| `SILICONFLOW_RERANK_MODEL` | `Qwen/Qwen3-Reranker-4B` | SiliconFlow 重排序模型 |
+
+### 流程
+
+```
+用户问题 → 历史感知改写 → ChromaDB 检索 TOP_K 个
+    → Reranker 交叉编码重打分 → 保留 RERANK_TOP_K 个
+    → LLM 生成回答
+```
+
+### 日志
+
+表格直接 `print()` 到终端（不走 logger），`LOG_LEVEL=DEBUG` 可见 API 请求详情。

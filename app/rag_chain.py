@@ -4,12 +4,13 @@
 #   用户问题 → 改写为搜索查询 → ChromaDB 向量检索 TOP_K 文档块
 #   → 检索结果作为 {context} 填入 QA Prompt → LLM 生成回答 → 逐 token 流式返回
 
-from typing import List, Dict, Generator, Tuple
+from typing import List, Dict, Generator, Tuple, Any
 from pathlib import Path
 from langchain_ollama import ChatOllama
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_core.callbacks import BaseCallbackHandler
+from langchain_core.retrievers import BaseRetriever
 from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain_classic.chains import create_history_aware_retriever, create_retrieval_chain
 from langchain_classic.chains.combine_documents import create_stuff_documents_chain
@@ -21,8 +22,10 @@ from app.config import (
     VLLM_BASE_URL, VLLM_MODEL, DEFAULT_BACKEND,
     SILICONFLOW_BASE_URL, SILICONFLOW_LLM_MODEL, SILICONFLOW_API_KEY,
     CHROMA_DB_DIR, TOP_K, MEMORY_WINDOW,
+    RERANK_ENABLED, RERANK_TOP_K,
 )
 from app.ingest import get_embedding, collection_name_for_backend
+from app.reranker import get_reranker
 from app.logger import setup_logger
 
 logger = setup_logger(__name__)
@@ -84,6 +87,20 @@ def format_docs(docs: List[Document]) -> str:
     return "\n\n".join(d.page_content for d in docs)
 
 
+# ── Reranker 包装器：在 ChromaDB 检索之后、LLM 生成之前插入重排序 ──
+
+class RerankerRetriever(BaseRetriever):
+    retriever: Any
+    reranker: Any
+
+    def __init__(self, retriever, reranker):
+        super().__init__(retriever=retriever, reranker=reranker)
+
+    def _get_relevant_documents(self, query):
+        docs = self.retriever.invoke(query)
+        return self.reranker.rerank(query, docs)
+
+
 # ── 初始化 LLM：根据后端类型选择 ChatOpenAI（vLLM）或 ChatOllama ──
 
 def get_llm(backend: str = DEFAULT_BACKEND):
@@ -133,6 +150,19 @@ def build_chain(backend: str = DEFAULT_BACKEND):
     llm = get_llm(backend)
     vector_store = get_vector_store(backend)
     retriever = vector_store.as_retriever(search_kwargs={"k": TOP_K})
+
+    # 重排序：RERANK_ENABLED 时，在检索后插入 reranker 精排
+    if RERANK_ENABLED:
+        reranker = get_reranker(backend)
+        if reranker:
+            msg = f"[Reranker] 重排序已启用: backend={backend}, type={type(reranker).__name__}, top_n={RERANK_TOP_K}"
+            logger.info(msg)
+            print(f"\n{'=' * 60}\n{msg}\n{'=' * 60}", flush=True)
+            retriever = RerankerRetriever(retriever, reranker)
+        else:
+            msg = f"[Reranker] 已启用但后端 {backend} 不支持（仅 siliconflow）"
+            logger.info(msg)
+            print(f"\n{'=' * 60}\n{msg}\n{'=' * 60}", flush=True)
 
     # Prompt 1：将对话历史 + 用户问题改写为独立搜索查询（用于检索）
     #

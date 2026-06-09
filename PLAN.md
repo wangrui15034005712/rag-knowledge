@@ -39,6 +39,8 @@
          ↓
    语义检索 Top-K (K=10)
          ↓
+   Reranker 重排序 Top-RERANK_TOP_K (K=4)
+         ↓
    构建上下文 + 最近5轮对话历史
          ↓
    LLM 流式生成回答（按后端选择模型）
@@ -55,7 +57,7 @@ rag-test/
 │   ├── rag_chain.py     # RAG 检索链 + 流式输出
 │   ├── ingest.py        # 文档解析 → 分块 → 嵌入 → 入库
 │   ├── config.py        # 全局配置（模型名、chunk 大小、API Key 等）
-│   ├── ocr_engine.py    # OCR 视觉识别引擎
+│   ├── reranker.py      # 重排序抽象层（当前仅 SiliconFlow）
 │   ├── logger.py        # 日志工具
 │   └── pages/
 │       ├── __init__.py
@@ -162,6 +164,9 @@ rag-test/
 | `CHUNK_OVERLAP` | `100` | 块间重叠字符数 |
 | `TOP_K` | `8` | 检索返回的最相关片段数 |
 | `MEMORY_WINDOW` | `5` | 对话记忆保留轮数 |
+| `RERANK_ENABLED` | `false` | 是否启用重排序（当前仅 SiliconFlow） |
+| `RERANK_TOP_K` | `4` | 重排序后保留的文档块数 |
+| `SILICONFLOW_RERANK_MODEL` | `Qwen/Qwen3-Reranker-4B` | SiliconFlow 重排序模型 |
 | `CHROMA_DB_DIR` | `./chroma_db` | 向量库持久化路径 |
 | `DOCS_DIR` | `./docs` | 文档存放路径 |
 
@@ -184,7 +189,8 @@ rag-test/
 - `get_llm(backend: str) -> BaseChatModel` — 按后端初始化 LLM（Ollama / ChatOpenAI）
 - `get_session_history(session_id: str) -> ChatMessageHistory` — 会话历史管理（基于内存 dict，按 session_id 隔离）
 - `format_docs(docs: List[Document]) -> str` — 格式化检索结果
-- `build_chain(backend: str) -> Runnable` — 构建 RAG 链：history_aware_retriever → document_chain（stream 输出）
+- `RerankerRetriever` — ChromaDB 检索后包装 reranker 精排（继承 BaseRetriever）
+- `build_chain(backend: str) -> Runnable` — 构建 RAG 链：history_aware_retriever（可选包 RerankerRetriever）→ document_chain（stream 输出）
 - `get_answer_stream(query: str, session_id: str, backend: str) -> Generator` — 接收问题，结合 context 和历史，流式生成回答，同时返回引用的 source 列表
 
 **Prompt 模板（QA）：**
@@ -256,6 +262,7 @@ content = [
 - [x] 多轮对话记忆（最多保留最近 5 轮）
 - [x] 清空对话记录
 - [x] 后端连接异常提示（按当前后端显示）
+- [x] Reranker 重排序（SiliconFlow 后端）
 
 ### OCR 图片文字识别（独立页面）
 - [x] 上传图片（单张，JPG/PNG/BMP/WebP）

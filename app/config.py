@@ -55,6 +55,13 @@ LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 LOG_FORMAT = os.getenv("LOG_FORMAT", "%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 
 # ============================================================
+# 重排序（Reranker）
+# ============================================================
+RERANK_ENABLED = os.getenv("RERANK_ENABLED", "false").lower() == "true"
+RERANK_TOP_K = int(os.getenv("RERANK_TOP_K", "4"))
+SILICONFLOW_RERANK_MODEL = os.getenv("SILICONFLOW_RERANK_MODEL", "Qwen/Qwen3-Reranker-4B")
+
+# ============================================================
 # 目录路径
 # ============================================================
 BASE_DIR = Path(__file__).parent.parent

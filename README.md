@@ -10,6 +10,7 @@
 - 流式输出（打字机效果）+ 引用来源展示
 - 支持 Ollama（本地）、vLLM（远程 GPU）、SiliconFlow（硅基流动 API）三后端
 - OCR 图片文字识别（Qwen3.5-35B-A3B 多模态视觉模型，支持 SiliconFlow / vLLM）
+- 重排序（Reranker）精排检索结果，剔除噪音文档，提高回答质量
 
 ## 快速开始（从零搭建）
 
@@ -97,6 +98,19 @@ rag-test/
 | `CHUNK_SIZE` | `500` | 文本分块大小（字符） |
 | `TOP_K` | `8` | 检索返回的最相关块数 |
 | `MEMORY_WINDOW` | `5` | 保留的对话轮数 |
+| `RERANK_ENABLED` | `false` | 是否启用重排序（当前仅 SiliconFlow） |
+| `RERANK_TOP_K` | `4` | 重排序后保留的文档块数 |
+| `SILICONFLOW_RERANK_MODEL` | `Qwen/Qwen3-Reranker-4B` | SiliconFlow 重排序模型 |
+
+## 重排序（Reranker）
+
+在向量检索之后引入交叉编码重排序模型，对 `TOP_K` 个文档块精细打分，保留最相关的 `RERANK_TOP_K` 个传给 LLM。当前仅 SiliconFlow 后端支持。
+
+启用（在 `.env` 中添加）：
+```
+RERANK_ENABLED=true
+RERANK_TOP_K=4
+```
 
 ## 切换后端
 
