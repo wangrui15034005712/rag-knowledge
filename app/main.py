@@ -20,6 +20,16 @@ st.set_page_config(
     layout="wide",
 )
 
+st.markdown("""
+<style>
+    .main > div,
+    .stApp > div,
+    [data-testid="stAppViewContainer"] {
+        overflow: auto !important;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 DOCS_PATH = Path(DOCS_DIR)
 DOCS_PATH.mkdir(exist_ok=True)
 
