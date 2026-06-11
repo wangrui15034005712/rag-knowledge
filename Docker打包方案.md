@@ -148,6 +148,12 @@ volumes:
 # 2. 默认启动（SiliconFlow 模式）
 docker compose up -d
 
+# 重新构建镜像并启动（推荐）
+docker compose up -d --build
+# 或分两步：先构建再启动
+docker compose build
+docker compose up -d
+
 # 3. 含本地 Ollama
 docker compose --profile ollama up -d
 docker exec rag-ollama ollama pull qwen2.5:7b
