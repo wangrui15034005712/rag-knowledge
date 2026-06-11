@@ -61,12 +61,19 @@ rag-test/
 │   ├── logger.py        # 日志工具
 │   └── pages/
 │       ├── __init__.py
-│       └── 1_OCR.py     # OCR 图片文字识别页面
+│       ├── 1_OCR.py     # OCR 图片文字识别页面
+│       ├── 2_JSON格式化.py # JSON 格式化工具页面
+│       ├── 3_MD在线编辑.py # Markdown 在线编辑器页面
+│       ├── 4_局域网IP扫描器.py # 局域网 IP 扫描器页面
+│       └── 5_MySQL_Redis连通性测试_版本显示.py # MySQL/Redis 连通性测试页面
 ├── docs/                # 上传文档存放目录
 ├── chroma_db/           # ChromaDB 持久化目录（自动创建）
 ├── venv/                # 虚拟环境
 ├── .env                 # 环境变量（API Key 等，不入库）
 ├── .env.example         # 环境变量模板（可入库）
+├── Dockerfile           # Docker 镜像构建
+├── .dockerignore        # Docker build context 过滤规则
+├── docker-compose.yml   # 服务编排（含 ollama profile）
 ├── requirements.txt     # Python 依赖
 └── PLAN.md              # 项目计划文档
 ```
@@ -285,6 +292,8 @@ content = [
 
 ## 启动方式
 
+### 本地开发
+
 ```bash
 # 1. 安装 Python 依赖
 pip install -r requirements.txt
@@ -294,6 +303,20 @@ ollama serve
 
 # 3. 启动知识库
 .\venv\Scripts\python.exe -m streamlit run app/main.py --server.port 8501
+# 浏览器打开 http://localhost:8501
+```
+
+### Docker 部署
+
+```bash
+# 默认 SiliconFlow 模式（需 .env 配置 API Key）
+docker compose up -d
+
+# 含本地 Ollama
+docker compose --profile ollama up -d
+docker exec rag-ollama ollama pull qwen2.5:7b
+docker exec rag-ollama ollama pull bge-m3
+
 # 浏览器打开 http://localhost:8501
 ```
 
@@ -310,3 +333,4 @@ ollama serve
 9. 每个后端独立 ChromaDB collection
 10. 引用来源搜索词高亮
 11. OCR 图片文字识别（Qwen3.5-35B-A3B 多模态视觉模型，SiliconFlow + vLLM）
+12. Docker 容器化打包（python:3.12-slim + tini + streamlit + docker-compose，默认 SiliconFlow，profile ollama）

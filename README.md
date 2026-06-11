@@ -52,7 +52,22 @@ streamlit run app/main.py
 
 浏览器打开 http://localhost:8501
 
-### 5. 使用流程
+### 5. Docker 部署（替代上述步骤 1-4）
+
+```bash
+# 确保 .env 已配置（至少 SILICONFLOW_API_KEY）
+# 默认 SiliconFlow 模式
+docker compose up -d
+
+# 如需启动本地 Ollama
+docker compose --profile ollama up -d
+docker exec rag-ollama ollama pull qwen2.5:7b
+docker exec rag-ollama ollama pull bge-m3
+```
+
+浏览器打开 http://localhost:8501
+
+### 6. 使用流程
 
 1. 上传文档（PDF/Word/TXT）到 `docs/` 目录，或通过 UI 页面上传
 2. 点击侧边栏 **"导入到知识库"** 按钮
@@ -71,12 +86,19 @@ rag-test/
 │   ├── logger.py            # 日志工具
 │   └── pages/               # Streamlit 多页面
 │       ├── __init__.py
-│       └── 1_OCR.py         # OCR 图片文字识别
+│       ├── 1_OCR.py         # OCR 图片文字识别
+│       ├── 2_JSON格式化.py   # JSON 格式化工具
+│       ├── 3_MD在线编辑.py    # Markdown 在线编辑器
+│       ├── 4_局域网IP扫描器.py # 局域网 IP 扫描
+│       └── 5_MySQL_Redis连通性测试_版本显示.py  # MySQL/Redis 连通性测试
 ├── docs/                    # 上传文档目录（手动放置或 UI 上传）
 ├── chroma_db/               # ChromaDB 持久化（自动生成）
 ├── venv/                    # 虚拟环境
 ├── .env                     # 环境变量（API Key 等，不入库）
 ├── .env.example             # 环境变量模板（可入库）
+├── Dockerfile               # Docker 镜像构建
+├── .dockerignore            # Docker build context 过滤
+├── docker-compose.yml       # 服务编排（含 ollama profile）
 └── requirements.txt
 ```
 
@@ -114,11 +136,12 @@ RERANK_TOP_K=4
 
 ## 切换后端
 
-三种方式：
+四种方式：
 
 1. **Streamlit 侧边栏** — radio 按钮切换 `ollama` / `vllm` / `siliconflow`
 2. **改配置** — 修改 `app/config.py` 的 `DEFAULT_BACKEND`
 3. **环境变量** — `$env:DEFAULT_BACKEND="siliconflow"`
+4. **Docker 环境变量** — 修改 `docker-compose.yml` 的 `environment.DEFAULT_BACKEND`，或写入 `.env` 文件
 
 各后端地址：
 

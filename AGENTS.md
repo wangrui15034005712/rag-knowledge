@@ -3,8 +3,18 @@
 ## 启动
 
 ```bash
+# 本地开发
 cd D:\User\git\rag-test
 .\venv\Scripts\python.exe -m streamlit run app/main.py --server.port 8501
+
+# Docker 部署（默认 SiliconFlow）
+docker compose up -d
+
+# Docker 部署（含 Ollama）
+docker compose --profile ollama up -d
+docker exec rag-ollama ollama pull qwen2.5:7b
+docker exec rag-ollama ollama pull bge-m3
+
 # 浏览器打开 http://localhost:8501
 ```
 
@@ -25,10 +35,17 @@ cd D:\User\git\rag-test
 | `app/config.py` | 所有可调参数（模型名、chunk 大小、TOP_K 等） |
 | `app/ocr_engine.py` | OCR 视觉识别引擎（base64 → 视觉 API → Markdown） |
 | `app/pages/1_OCR.py` | OCR 图片文字识别页面（独立 Streamlit 页面） |
+| `app/pages/2_JSON格式化.py` | JSON 格式化工具页面 |
+| `app/pages/3_MD在线编辑.py` | Markdown 在线编辑器页面 |
+| `app/pages/4_局域网IP扫描器.py` | 局域网 IP 扫描器页面 |
+| `app/pages/5_MySQL_Redis连通性测试_版本显示.py` | MySQL/Redis 连通性测试页面 |
 | `docs/` | 上传文档存放目录 |
 | `chroma_db/` | ChromaDB 持久化目录（自动创建） |
 | `.env` | 环境变量（API Key 等，不入库） |
 | `.env.example` | 环境变量模板（可入库） |
+| `Dockerfile` | Docker 镜像构建（python:3.12-slim + tini + streamlit） |
+| `.dockerignore` | Docker build context 过滤规则 |
+| `docker-compose.yml` | 服务编排（rag-app 默认，ollama profile 可选） |
 
 ## 流程：提问 → 回答
 
