@@ -16,7 +16,11 @@ rag-test/
 │   ├── reranker.py
 │   ├── logger.py
 │   └── pages/
-│       └── 1_OCR.py
+│       ├── 1_OCR.py
+│       ├── 2_JSON格式化.py
+│       ├── 3_MD在线编辑.py
+│       ├── 4_局域网IP扫描器.py
+│       └── 5_MySQL_Redis连通性测试_版本显示.py
 ├── chroma_db/                  ← 持久化挂载（命名卷）
 ├── docs/                       ← 持久化挂载（命名卷）
 ├── .env                        ← 只读挂载
@@ -38,7 +42,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends tini \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -i https://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com -r requirements.txt
 
 COPY . .
 
@@ -63,6 +67,7 @@ CMD ["streamlit", "run", "app/main.py", "--server.port=8501", "--server.address=
 | `--server.fileWatcherType=none` | Docker 环境下禁用文件监听，减少 CPU/内存开销 |
 | `HEALTHCHECK` | 每 30s 探测 8501 端口，K8s / Compose 可感知容器健康状态 |
 | `.env` 不 COPY | 敏感信息通过卷挂载注入，不写入镜像层 |
+| 阿里云 pip 镜像 | `-i https://mirrors.aliyun.com/pypi/simple/` 加速国内构建 |
 
 ---
 
