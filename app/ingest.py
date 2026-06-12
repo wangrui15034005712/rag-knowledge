@@ -12,6 +12,7 @@ from app.config import (
     DOCS_DIR, CHROMA_DB_DIR, EMBEDDING_MODEL, OLLAMA_BASE_URL,
     VLLM_BASE_URL, VLLM_EMBEDDING_MODEL, DEFAULT_BACKEND,
     SILICONFLOW_BASE_URL, SILICONFLOW_EMBEDDING_MODEL, SILICONFLOW_API_KEY,
+    LM_STUDIO_BASE_URL, LM_STUDIO_EMBEDDING_MODEL,
     CHUNK_SIZE, CHUNK_OVERLAP,
 )
 import chromadb
@@ -90,6 +91,15 @@ def get_embedding(backend: str = DEFAULT_BACKEND):
             model=SILICONFLOW_EMBEDDING_MODEL,
             base_url=SILICONFLOW_BASE_URL,
             api_key=SILICONFLOW_API_KEY,
+        )
+    if backend == "lmstudio":
+        from langchain_openai import OpenAIEmbeddings
+        logger.info(f"初始化嵌入模型(LM Studio): {LM_STUDIO_EMBEDDING_MODEL} @ {LM_STUDIO_BASE_URL}")
+        return OpenAIEmbeddings(
+            model=LM_STUDIO_EMBEDDING_MODEL,
+            base_url=LM_STUDIO_BASE_URL,
+            api_key="not-needed",
+            check_embedding_ctx_length=False,
         )
     logger.debug(f"初始化嵌入模型(Ollama): {EMBEDDING_MODEL} @ {OLLAMA_BASE_URL}")
     return OllamaEmbeddings(

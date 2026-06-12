@@ -7,7 +7,7 @@ from pathlib import Path
 import time
 import re
 
-from app.config import DOCS_DIR, OLLAMA_BASE_URL, VLLM_BASE_URL, SILICONFLOW_BASE_URL, SILICONFLOW_API_KEY, DEFAULT_BACKEND
+from app.config import DOCS_DIR, OLLAMA_BASE_URL, VLLM_BASE_URL, SILICONFLOW_BASE_URL, SILICONFLOW_API_KEY, LM_STUDIO_BASE_URL, DEFAULT_BACKEND
 from app.ingest import ingest_documents, get_file_hash, get_chroma_client, get_indexed_hashes, collection_name_for_backend
 from app.rag_chain import get_answer_stream, clear_memory
 from app.logger import setup_logger
@@ -60,6 +60,8 @@ def check_backend(backend: str) -> bool:
     elif backend == "siliconflow":
         url = f"{SILICONFLOW_BASE_URL}/models"
         headers = {"Authorization": f"Bearer {SILICONFLOW_API_KEY}"}
+    elif backend == "lmstudio":
+        url, headers = f"{LM_STUDIO_BASE_URL}/models", None
     else:
         return False
     try:
@@ -153,10 +155,10 @@ with st.sidebar:
     st.header("📁 文档管理")
 
     # LLM 后端切换
-    backend_index = {"ollama": 0, "vllm": 1, "siliconflow": 2}
+    backend_index = {"ollama": 0, "vllm": 1, "siliconflow": 2, "lmstudio": 3}
     st.session_state.backend = st.radio(
         "LLM 后端",
-        ["ollama", "vllm", "siliconflow"],
+        ["ollama", "vllm", "siliconflow", "lmstudio"],
         index=backend_index.get(st.session_state.backend, 0),
         horizontal=True,
     )
@@ -337,5 +339,5 @@ if prompt := st.chat_input("💬 输入问题..."):
 # 首次启动时提示（后端未连接且无历史消息）
 backend = st.session_state.backend
 if not check_backend(backend) and not st.session_state.messages:
-    msgs = {"ollama": "请确保 Ollama 已启动（`ollama serve`）", "vllm": "请确保远程 vLLM 服务已启动", "siliconflow": "请检查 API Key 和网络"}
+    msgs = {"ollama": "请确保 Ollama 已启动（`ollama serve`）", "vllm": "请确保远程 vLLM 服务已启动", "siliconflow": "请检查 API Key 和网络", "lmstudio": "请确保 LM Studio 已启动 Local Inference Server"}
     st.info(f"🔴 {backend} 未连接，{msgs.get(backend, '请检查后端状态')}")

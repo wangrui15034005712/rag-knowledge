@@ -21,6 +21,7 @@ from app.config import (
     OLLAMA_BASE_URL, LLM_MODEL, EMBEDDING_MODEL,
     VLLM_BASE_URL, VLLM_MODEL, DEFAULT_BACKEND,
     SILICONFLOW_BASE_URL, SILICONFLOW_LLM_MODEL, SILICONFLOW_API_KEY,
+    LM_STUDIO_BASE_URL, LM_STUDIO_MODEL,
     CHROMA_DB_DIR, TOP_K, MEMORY_WINDOW,
     RERANK_ENABLED, RERANK_TOP_K,
 )
@@ -122,6 +123,17 @@ def get_llm(backend: str = DEFAULT_BACKEND):
             model=SILICONFLOW_LLM_MODEL,
             base_url=SILICONFLOW_BASE_URL,
             api_key=SILICONFLOW_API_KEY,
+            temperature=0.1,
+            streaming=True,
+            callbacks=[LoggingCallbackHandler()],
+        )
+    if backend == "lmstudio":
+        from langchain_openai import ChatOpenAI
+        logger.info(f"初始化 LLM(LM Studio): {LM_STUDIO_MODEL} @ {LM_STUDIO_BASE_URL}")
+        return ChatOpenAI(
+            model=LM_STUDIO_MODEL,
+            base_url=LM_STUDIO_BASE_URL,
+            api_key="not-needed",
             temperature=0.1,
             streaming=True,
             callbacks=[LoggingCallbackHandler()],

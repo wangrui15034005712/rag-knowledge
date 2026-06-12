@@ -10,6 +10,7 @@ from app.config import (
     OLLAMA_BASE_URL, LLM_MODEL,
     VLLM_BASE_URL, VLLM_MODEL,
     SILICONFLOW_BASE_URL, SILICONFLOW_LLM_MODEL, SILICONFLOW_API_KEY,
+    LM_STUDIO_BASE_URL, LM_STUDIO_MODEL,
     DEFAULT_BACKEND,
 )
 
@@ -46,6 +47,7 @@ BACKEND_OPTIONS = {
     "Ollama": "ollama",
     "vLLM": "vllm",
     "SiliconFlow": "siliconflow",
+    "LM Studio": "lmstudio",
 }
 
 # === LLM 加载 ===
@@ -66,6 +68,15 @@ def get_llm(backend: str):
             model=VLLM_MODEL,
             base_url=VLLM_BASE_URL,
             api_key="none",
+            temperature=0.1,
+            streaming=True,
+        )
+    if backend == "lmstudio":
+        from langchain_openai import ChatOpenAI
+        return ChatOpenAI(
+            model=LM_STUDIO_MODEL,
+            base_url=LM_STUDIO_BASE_URL,
+            api_key="not-needed",
             temperature=0.1,
             streaming=True,
         )
@@ -213,6 +224,7 @@ model_name = {
     "ollama": LLM_MODEL,
     "vllm": VLLM_MODEL,
     "siliconflow": SILICONFLOW_LLM_MODEL,
+    "lmstudio": LM_STUDIO_MODEL,
 }.get(st.session_state.selected_backend, "?")
 col_footer1, col_footer2 = st.columns([1, 3])
 with col_footer1:

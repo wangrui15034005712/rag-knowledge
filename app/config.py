@@ -28,7 +28,14 @@ SILICONFLOW_EMBEDDING_MODEL = os.getenv("SILICONFLOW_EMBEDDING_MODEL", "Qwen/Qwe
 SILICONFLOW_API_KEY = os.getenv("SILICONFLOW_API_KEY", "")
 
 # ============================================================
-# 默认后端：ollama | vllm | siliconflow
+# LM Studio（本地，OpenAI 兼容 API）
+# ============================================================
+LM_STUDIO_BASE_URL = os.getenv("LM_STUDIO_BASE_URL", "http://localhost:1234/v1")
+LM_STUDIO_MODEL = os.getenv("LM_STUDIO_MODEL", "qwen/qwen3-1.7b")
+LM_STUDIO_EMBEDDING_MODEL = os.getenv("LM_STUDIO_EMBEDDING_MODEL", "text-embedding-nomic-embed-text-v1.5")
+
+# ============================================================
+# 默认后端：ollama | vllm | siliconflow | lmstudio
 # ============================================================
 DEFAULT_BACKEND = os.getenv("DEFAULT_BACKEND", "ollama")
 
