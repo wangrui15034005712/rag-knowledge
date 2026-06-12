@@ -10,14 +10,14 @@ services:
       - argos_model_data:/app/models/argos-translate/packages
       - ./.env:/app/.env:ro
     environment:
-      - DEFAULT_BACKEND=siliconflow
+      - DEFAULT_BACKEND=ollama
       - ENABLE_TRANSLATION=false
+      - OLLAMA_BASE_URL=http://ollama:11434
     profiles: [""]
 
   ollama:
     image: ollama/ollama:latest
     container_name: rag-ollama
-    profiles: ["ollama"]
     ports:
       - "11434:11434"
     volumes:
