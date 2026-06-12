@@ -30,35 +30,36 @@ def _patched_request(self, method, url, **kwargs):
 requests.Session.request = _patched_request
 
 
-def download_model():
-    """通过 argostranslate 内置包管理器下载并安装 en-zh 模型"""
+def _install_language_pair(from_code, to_code):
+    """下载并安装指定语言对模型"""
+    label = f"{from_code}->{to_code}"
     installed = argostranslate.package.get_installed_packages()
-    en_zh = next(
-        (p for p in installed if p.from_code == "en" and p.to_code == "zh"),
+    found = next(
+        (p for p in installed if p.from_code == from_code and p.to_code == to_code),
         None
     )
-    if en_zh:
-        print(f"[OK] en-zh 模型已安装 (路径: {en_zh.package_path})")
+    if found:
+        print(f"[OK] {label} 模型已安装 (路径: {found.package_path})")
         return True
 
-    print("[..] 正在更新包索引...")
+    print(f"[..] 正在下载并安装 {label} 翻译模型...")
     try:
-        argostranslate.package.update_package_index()
-    except Exception as e:
-        print(f"[!] 包索引更新警告: {e}")
-
-    print("[..] 正在下载并安装 en-zh 翻译模型...")
-    try:
-        ok = argostranslate.package.install_package_for_language_pair("en", "zh")
+        ok = argostranslate.package.install_package_for_language_pair(from_code, to_code)
         if ok:
-            print("[OK] 模型下载安装成功!")
+            print(f"[OK] {label} 模型下载安装成功!")
             return True
         else:
-            print("[FAIL] 安装失败，返回 False")
+            print(f"[FAIL] {label} 安装失败，返回 False")
             return False
     except Exception as e:
-        print(f"[FAIL] 安装异常: {e}")
+        print(f"[FAIL] {label} 安装异常: {e}")
         return False
+
+
+LANGUAGE_PAIRS = [
+    ("en", "zh"),
+    ("zh", "en"),
+]
 
 
 def verify():
@@ -66,30 +67,48 @@ def verify():
     os.environ["ARGOS_CHUNK_TYPE"] = "MINISBD"
     import argostranslate.translate
 
-    try:
-        result = argostranslate.translate.translate("Hello world", "en", "zh")
-        print(f"[OK] 翻译验证: 'Hello world' -> '{result}'")
-        return True
-    except Exception as e:
-        print(f"[!] 翻译验证失败: {e}")
-        return False
+    tests = [
+        ("en", "zh", "Hello world", "en", "zh"),
+        ("zh", "en", "你好世界", "zh", "en"),
+    ]
+    all_ok = True
+    for from_code, to_code, text, label_f, label_t in tests:
+        try:
+            result = argostranslate.translate.translate(text, from_code, to_code)
+            print(f"[OK] 翻译验证: '{text}' -> '{result}'")
+        except Exception as e:
+            print(f"[!] {label_f}->{label_t} 翻译验证失败: {e}")
+            all_ok = False
+    return all_ok
 
 
 if __name__ == "__main__":
     print("=" * 50)
-    print(" Argos Translate en-zh 模型下载")
+    print(" Argos Translate 翻译模型下载")
     print("=" * 50)
     print(f" 模型目录: {PACKAGES_DIR}")
     print()
 
-    if download_model():
+    print("[..] 正在更新包索引...")
+    try:
+        argostranslate.package.update_package_index()
+    except Exception as e:
+        print(f"[!] 包索引更新警告: {e}")
+    print()
+
+    all_success = True
+    for from_code, to_code in LANGUAGE_PAIRS:
+        if not _install_language_pair(from_code, to_code):
+            all_success = False
         print()
+
+    if all_success:
         verify()
         print()
-        print("全部完成! 可以启动 Streamlit 使用英中翻译。")
+        print("全部完成! 可以启动 Streamlit 使用翻译功能。")
     else:
         print()
-        print("下载失败。备选方案:")
+        print("部分模型下载失败。备选方案:")
         print(f"  1. 手动下载 .argosmodel 放入 {PACKAGES_DIR}")
         print("  2. 检查网络后重试")
         sys.exit(1)

@@ -40,8 +40,9 @@ docker exec rag-ollama ollama pull bge-m3
 | `app/pages/4_局域网IP扫描器.py` | 局域网 IP 扫描器页面 |
 | `app/pages/5_MySQL_Redis连通性测试_版本显示.py` | MySQL/Redis 连通性测试页面 |
 | `app/pages/6_英中翻译.py` | 英中翻译页面（Argos Translate 离线） |
-| `scripts/download_argos_model.py` | 预下载 en-zh 翻译模型到 `models/argos-translate/` |
-| `models/argos-translate/packages/` | en-zh 离线翻译模型文件（CTranslate2 格式，不入库） |
+| `app/pages/7_中英翻译.py` | 中英翻译页面（Argos Translate 离线，zh→en） |
+| `scripts/download_argos_model.py` | 预下载 en-zh 和 zh-en 翻译模型到 `models/argos-translate/` |
+| `models/argos-translate/packages/` | en-zh / zh-en 离线翻译模型文件（CTranslate2 格式，不入库） |
 | `docs/` | 上传文档存放目录 |
 | `chroma_db/` | ChromaDB 持久化目录（自动创建） |
 | `.env` | 环境变量（API Key 等，不入库） |
@@ -101,7 +102,7 @@ docker exec rag-ollama ollama pull bge-m3
 
 ```bash
 pip install argostranslate      # 安装依赖（已加入 requirements.txt）
-.\venv\Scripts\python.exe scripts\download_argos_model.py  # 预下载 en-zh 模型
+.\venv\Scripts\python.exe scripts\download_argos_model.py  # 预下载 en-zh + zh-en 模型
 ```
 
 模型文件下载到 `models/argos-translate/packages/`（已加入 `.gitignore`）。
@@ -140,7 +141,8 @@ models/argos-translate/packages/
 | 文件 | 说明 |
 |------|------|
 | `app/pages/6_英中翻译.py` | Streamlit 翻译页面（左栏英文输入 → 右栏中文输出） |
-| `scripts/download_argos_model.py` | 下载 en-zh 翻译模型到本地 |
+| `app/pages/7_中英翻译.py` | Streamlit 翻译页面（左栏中文输入 → 右栏英文输出，镜像实现） |
+| `scripts/download_argos_model.py` | 下载 en-zh + zh-en 翻译模型到本地 |
 | `models/argos-translate/` | 模型文件目录（不入库） |
 
 ### 注意
@@ -148,8 +150,8 @@ models/argos-translate/packages/
 - **`ARGOS_CHUNK_TYPE=MINISBD`**：页面前置设置，避免 stanza 联网下载资源（国内网络限制）
 - **SSL 绕过**：GitHub 证书验证失败时，下载脚本 patch `requests` 全局跳过 SSL 验证
 - 翻译引擎纯离线，模型下载完成后无需网络即可使用
-- 翻译质量受限于 Argos Translate 内置的 en-zh 模型大小
-- 当前仅英文→中文单向翻译，中间按钮列预留了拓展空间
+- 翻译质量受限于 Argos Translate 内置的 en-zh / zh-en 模型大小
+- 当前支持英→中（`6_英中翻译.py`）和中→英（`7_中英翻译.py`）双向翻译，独立页面
 
 ## 已知问题
 
