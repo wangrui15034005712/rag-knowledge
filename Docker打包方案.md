@@ -20,7 +20,8 @@ rag-test/
 │       ├── 2_JSON格式化.py
 │       ├── 3_MD在线编辑.py
 │       ├── 4_局域网IP扫描器.py
-│       └── 5_MySQL_Redis连通性测试_版本显示.py
+│       ├── 5_MySQL_Redis连通性测试_版本显示.py
+│       └── 6_英中翻译.py
 ├── chroma_db/                  ← 持久化挂载（命名卷）
 ├── docs/                       ← 持久化挂载（命名卷）
 ├── .env                        ← 只读挂载

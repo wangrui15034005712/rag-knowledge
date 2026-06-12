@@ -17,3 +17,4 @@ pandas>=2.0.0
 mysql-connector-python>=8.0.0
 redis>=5.0.0
 langchain-openai>=0.2.0
+argostranslate>=1.11.0

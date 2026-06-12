@@ -10,6 +10,7 @@
 - 流式输出（打字机效果）+ 引用来源展示
 - 支持 Ollama（本地）、vLLM（远程 GPU）、SiliconFlow（硅基流动 API）三后端
 - OCR 图片文字识别（Qwen3.5-35B-A3B 多模态视觉模型，支持 SiliconFlow / vLLM）
+- 英中翻译（Argos Translate 离线翻译引擎，纯本地无需联网）
 - 重排序（Reranker）精排检索结果，剔除噪音文档，提高回答质量
 
 ## 快速开始（从零搭建）
@@ -90,7 +91,14 @@ rag-test/
 │       ├── 2_JSON格式化.py   # JSON 格式化工具
 │       ├── 3_MD在线编辑.py    # Markdown 在线编辑器
 │       ├── 4_局域网IP扫描器.py # 局域网 IP 扫描
-│       └── 5_MySQL_Redis连通性测试_版本显示.py  # MySQL/Redis 连通性测试
+│       ├── 5_MySQL_Redis连通性测试_版本显示.py  # MySQL/Redis 连通性测试
+│       └── 6_英中翻译.py        # 英中翻译（Argos Translate 离线）
+├── models/                  # 离线模型文件（不入库）
+│   └── argos-translate/
+│       └── packages/
+│           └── translate-en_zh-1_9/  # en-zh 翻译模型
+├── scripts/
+│   └── download_argos_model.py  # 预下载 en-zh 翻译模型
 ├── docs/                    # 上传文档目录（手动放置或 UI 上传）
 ├── chroma_db/               # ChromaDB 持久化（自动生成）
 ├── venv/                    # 虚拟环境
@@ -166,6 +174,69 @@ RERANK_TOP_K=4
 
 使用的模型为 **Qwen/Qwen3.5-35B-A3B**（原生多模态视觉语言模型），通过 OpenAI 兼容的视觉 API（`data:image/...;base64`）传入图片。输出自动剥离 thinking 模型的 `<think>` 标签。
 
+## 英中翻译
+
+项目包含独立的英中翻译页面（Streamlit 侧边栏自动出现「英中翻译」入口），基于 **Argos Translate** 离线翻译引擎，纯本地运行，无需联网。
+
+### 首次使用
+
+```bash
+# 1. 安装依赖
+pip install argostranslate
+
+# 2. 下载 en-zh 翻译模型
+.\venv\Scripts\python.exe scripts\download_argos_model.py
+
+# 3. 启动 Streamlit，侧边栏点击「英中翻译」进入
+streamlit run app/main.py
+```
+
+### 页面功能
+
+1. **左栏** — 输入英文原文（`st.text_area`，高度 370px）
+2. **中间按钮** — 「英→中」翻译按钮（`st.button(type="primary")`）+ 清空按钮
+3. **右栏** — 中文译文展示（`st.text_area(disabled=True)`，只读）
+4. **底部** — 字符数统计 + 翻译耗时（毫秒）
+
+### 技术实现
+
+| 组件 | 选型 | 说明 |
+|------|------|------|
+| 翻译引擎 | Argos Translate 1.11.0 | 基于 CTranslate2 的离线神经机器翻译 |
+| 句子分割 | MiniSBD | `ARGOS_CHUNK_TYPE=MINISBD`，避免 stanza 联网下载资源 |
+| 模型路径 | `models/argos-translate/packages/` | 项目本地目录，不依赖全局安装 |
+| 模型包 | `translate-en_zh-1_9` | en→zh 翻译模型（CTranslate2 格式） |
+| 分词器 | SentencePiece | 内置在模型包中 |
+| 下载方式 | 通过 `install_package_for_language_pair()` | 绕过 SSL 验证适配国内网络环境 |
+
+### 关键文件
+
+| 文件 | 说明 |
+|------|------|
+| `app/pages/6_英中翻译.py` | Streamlit 翻译页面（page_title="英中翻译", layout="wide"） |
+| `scripts/download_argos_model.py` | 预下载 en-zh 模型到项目本地目录 |
+| `models/argos-translate/packages/` | 模型文件存放目录（已加入 .gitignore） |
+
+### 目录结构
+
+```
+models/argos-translate/packages/
+└── translate-en_zh-1_9/
+    ├── model/                # CTranslate2 模型权重
+    ├── stanza/               # 句子分割资源（内置，不需联网下载）
+    ├── sentencepiece.model   # SentencePiece 分词器
+    └── metadata.json         # 包元信息
+```
+
+### 注意事项
+
+- **模型预下载**：首次使用必须运行 `download_argos_model.py`，下载 en-zh 翻译模型到本地
+- **MINISBD 模式**：页面前置设置 `os.environ["ARGOS_CHUNK_TYPE"] = "MINISBD"`，避免 stanza 依赖 torch 联网下载资源（国内网络限制）
+- **SSL 验证**：下载脚本全局 patch `requests` 跳过 SSL 验证，适配 GitHub 证书验证失败的网络环境
+- **翻译质量**：受限于 Argos Translate 内置 en-zh 模型大小，长文本或专业术语翻译可能不够准确
+- **离线可用**：模型下载完成后，翻译引擎完全离线运行，无需任何网络请求
+- **仅英→中**：当前只支持英文到中文单向翻译，中间按钮列预留了空间便于日后拓展双向翻译
+
 ## ⚠️ 注意事项
 
 - **Thinking 模型会破坏检索**：`qwen35-35b-a3b` 等 thinking 模型在改写搜索查询时会输出英文思考过程，导致 ChromaDB 匹配失效。应使用 `qwen2.5-32b`、`qwen35-9b` 等非 thinking 模型。
@@ -183,5 +254,6 @@ RERANK_TOP_K=4
 | 向量库 | ChromaDB |
 | 嵌入模型 | bge-m3 / octen-embedding-4b / Qwen3-Embedding-8B |
 | 文档解析 | PyPDF / docx2txt |
+| 离线翻译 | Argos Translate 1.11.0（en→zh，CTranslate2） |
 | Web UI | Streamlit |
 | LLM 后端 | Ollama（本地）/ vLLM（远程）/ SiliconFlow（云 API） |

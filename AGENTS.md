@@ -39,6 +39,9 @@ docker exec rag-ollama ollama pull bge-m3
 | `app/pages/3_MD在线编辑.py` | Markdown 在线编辑器页面 |
 | `app/pages/4_局域网IP扫描器.py` | 局域网 IP 扫描器页面 |
 | `app/pages/5_MySQL_Redis连通性测试_版本显示.py` | MySQL/Redis 连通性测试页面 |
+| `app/pages/6_英中翻译.py` | 英中翻译页面（Argos Translate 离线） |
+| `scripts/download_argos_model.py` | 预下载 en-zh 翻译模型到 `models/argos-translate/` |
+| `models/argos-translate/packages/` | en-zh 离线翻译模型文件（CTranslate2 格式，不入库） |
 | `docs/` | 上传文档存放目录 |
 | `chroma_db/` | ChromaDB 持久化目录（自动创建） |
 | `.env` | 环境变量（API Key 等，不入库） |
@@ -89,6 +92,64 @@ docker exec rag-ollama ollama pull bge-m3
 **视觉模型**：`Qwen/Qwen3.5-35B-A3B`（原生多模态，支持 text + image + video 输入）
 **thinking 处理**：`ocr_engine.py:23` 的 `_clean_thinking()` 剥离 `<think>`/`<reasoning>` 标签
 **不保存文件**：识别结果仅预览，不写入 `docs/` 目录
+
+## 英中翻译
+
+独立页面（`app/pages/6_英中翻译.py`），基于 **Argos Translate** 离线翻译引擎。
+
+### 首次使用
+
+```bash
+pip install argostranslate      # 安装依赖（已加入 requirements.txt）
+.\venv\Scripts\python.exe scripts\download_argos_model.py  # 预下载 en-zh 模型
+```
+
+模型文件下载到 `models/argos-translate/packages/`（已加入 `.gitignore`）。
+
+### 页面功能
+
+1. 左侧 `st.text_area("英文原文", height=370)` — 输入英文文本
+2. 中间按钮列 — 「英→中」`st.button(type="primary")` + 「清空」按钮
+3. 右侧 `st.text_area("中文译文", height=370, disabled=True)` — 只读展示翻译结果
+4. 底部 `st.caption` — 字符数统计 + 翻译耗时（毫秒）
+
+### 下载脚本逻辑
+
+`scripts/download_argos_model.py`：
+
+1. 设置 `ARGOS_PACKAGES_DIR` 指向 `models/argos-translate/packages/`
+2. `monkey-patch` `requests.Session.request` 全局 `verify=False`（绕过 SSL 证书验证）
+3. 调用 `argostranslate.package.install_package_for_language_pair("en", "zh")`
+4. 函数自动拉取包索引 → 下载 `.argosmodel` → 解压安装到本地目录
+5. 翻译验证：`t.translate("Hello world", "en", "zh")` 确认模型可用
+
+### 模型落地结构
+
+```
+models/argos-translate/packages/
+└── translate-en_zh-1_9/
+    ├── model/                # CTranslate2 模型权重
+    ├── stanza/               # 句子分割资源（内置在包中，不需联网下载）
+    │   └── en/tokenize/ewt.pt
+    ├── sentencepiece.model   # SentencePiece 分词器
+    └── metadata.json         # 包元信息（版本、语言对等）
+```
+
+### 关键文件
+
+| 文件 | 说明 |
+|------|------|
+| `app/pages/6_英中翻译.py` | Streamlit 翻译页面（左栏英文输入 → 右栏中文输出） |
+| `scripts/download_argos_model.py` | 下载 en-zh 翻译模型到本地 |
+| `models/argos-translate/` | 模型文件目录（不入库） |
+
+### 注意
+
+- **`ARGOS_CHUNK_TYPE=MINISBD`**：页面前置设置，避免 stanza 联网下载资源（国内网络限制）
+- **SSL 绕过**：GitHub 证书验证失败时，下载脚本 patch `requests` 全局跳过 SSL 验证
+- 翻译引擎纯离线，模型下载完成后无需网络即可使用
+- 翻译质量受限于 Argos Translate 内置的 en-zh 模型大小
+- 当前仅英文→中文单向翻译，中间按钮列预留了拓展空间
 
 ## 已知问题
 

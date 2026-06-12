@@ -65,7 +65,14 @@ rag-test/
 │       ├── 2_JSON格式化.py # JSON 格式化工具页面
 │       ├── 3_MD在线编辑.py # Markdown 在线编辑器页面
 │       ├── 4_局域网IP扫描器.py # 局域网 IP 扫描器页面
-│       └── 5_MySQL_Redis连通性测试_版本显示.py # MySQL/Redis 连通性测试页面
+│       ├── 5_MySQL_Redis连通性测试_版本显示.py # MySQL/Redis 连通性测试页面
+│       └── 6_英中翻译.py # 英中翻译页面（Argos Translate 离线）
+├── models/              # 离线模型文件（不入库）
+│   └── argos-translate/
+│       └── packages/
+│           └── translate-en_zh-1_9/  # en-zh 翻译模型
+├── scripts/
+│   └── download_argos_model.py # 预下载 en-zh 翻译模型
 ├── docs/                # 上传文档存放目录
 ├── chroma_db/           # ChromaDB 持久化目录（自动创建）
 ├── venv/                # 虚拟环境
@@ -132,6 +139,28 @@ rag-test/
 │  │  │ This is the recognized text...  │   │
 │  │  └─────────────────────────────────┘   │
 │  └─────────────────────────────────────┘   │
+└──────────────────────────────────────────┘
+```
+
+### 英中翻译页面布局
+
+```
+┌──────────────────────────────────────────┐
+│  🌐 英中翻译                              │
+├──────────────────────────────────────────┤
+│  ┌─────────────┬────┬────────────────┐   │
+│  │  📝 英文原文 │    │  🌏 中文译文    │   │
+│  │  ┌─────────┐│ ▶  │  ┌──────────┐  │   │
+│  │  │         ││ 英→│  │          │  │   │
+│  │  │ 输入    ││ 中  │  │ 只读     │  │   │
+│  │  │ 英文    ││    │  │ 输出     │  │   │
+│  │  │ 文本    ││ 🗑  │  │          │  │   │
+│  │  │         ││ 清空│  │          │  │   │
+│  │  └─────────┘│    │  └──────────┘  │   │
+│  │  字符数: 42  │    │  字符数: 38    │   │
+│  └─────────────┴────┴────────────────┘   │
+│  ──────────────────────────────────────  │
+│  🌐 英中翻译工具 v1.0 | 引擎: Argos ... │
 └──────────────────────────────────────────┘
 ```
 
@@ -278,6 +307,16 @@ content = [
 - [x] Markdown 预览 + 源码复制（`st.code`）
 - [x] Thinking 模型输出清洗（剥离 `<think>` 标签）
 
+### 英中翻译（独立页面）
+- [x] 左栏英文原文输入（`st.text_area`，高度 370px）
+- [x] 右栏中文译文输出（`st.text_area(disabled=True)`，只读）
+- [x] 中间按钮列（英→中翻译 + 清空）
+- [x] 字符数统计 + 翻译耗时显示
+- [x] 离线翻译引擎（Argos Translate，CTranslate2 后端）
+- [x] MiniSBD 句子分割（`ARGOS_CHUNK_TYPE=MINISBD`，避免 stanza 联网）
+- [x] 模型预下载脚本（`scripts/download_argos_model.py`，适配国内网络）
+- [x] 项目本地模型目录（`models/argos-translate/packages/`）
+
 ## 环境要求
 
 | 项目 | 最低要求 | 推荐配置 |
@@ -334,3 +373,4 @@ docker exec rag-ollama ollama pull bge-m3
 10. 引用来源搜索词高亮
 11. OCR 图片文字识别（Qwen3.5-35B-A3B 多模态视觉模型，SiliconFlow + vLLM）
 12. Docker 容器化打包（python:3.12-slim + tini + streamlit + docker-compose，默认 SiliconFlow，profile ollama）
+13. 英中翻译页面（Argos Translate 离线翻译引擎，en-zh 模型本地加载，MiniSBD 句子分割）
