@@ -7,8 +7,11 @@
 cd D:\User\git\rag-test
 .\venv\Scripts\python.exe -m streamlit run app/main.py --server.port 8501
 
-# Docker 部署（默认 SiliconFlow）
+# Docker 部署（默认 SiliconFlow，不加载翻译模型）
 docker compose up -d
+
+# Docker 部署（启用翻译功能，首次会下载 ~200MB 翻译模型）
+ENABLE_TRANSLATION=true docker compose up -d
 
 # Docker 部署（含 Ollama）
 docker compose --profile ollama up -d

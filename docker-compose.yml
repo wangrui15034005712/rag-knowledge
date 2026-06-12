@@ -7,9 +7,11 @@ services:
     volumes:
       - chroma_data:/app/chroma_db
       - docs_data:/app/docs
+      - argos_model_data:/app/models/argos-translate/packages
       - ./.env:/app/.env:ro
     environment:
       - DEFAULT_BACKEND=siliconflow
+      - ENABLE_TRANSLATION=false
     profiles: [""]
 
   ollama:
@@ -24,4 +26,5 @@ services:
 volumes:
   chroma_data:
   docs_data:
+  argos_model_data:
   ollama_data:
