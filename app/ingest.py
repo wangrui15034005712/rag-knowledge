@@ -119,6 +119,30 @@ def collection_name_for_backend(backend: str) -> str:
     return f"rag_knowledge_{backend}"
 
 
+# ── 知识库统计 ──
+
+def get_knowledge_base_stats(backend: str) -> dict:
+    client = get_chroma_client()
+    collection_name = collection_name_for_backend(backend)
+    try:
+        collection = client.get_collection(collection_name)
+    except Exception:
+        return {"total_chunks": 0, "total_files": 0, "files": []}
+
+    total_chunks = collection.count()
+    results = collection.get(include=["metadatas"])
+
+    files = {}
+    for meta in results["metadatas"]:
+        filename = meta.get("filename", "unknown")
+        if filename not in files:
+            files[filename] = {"filename": filename, "chunks": 0}
+        files[filename]["chunks"] += 1
+
+    file_list = sorted(files.values(), key=lambda x: x["chunks"], reverse=True)
+    return {"total_chunks": total_chunks, "total_files": len(file_list), "files": file_list}
+
+
 # ── 获取已索引文件的哈希表（用于增量跳过） ──
 
 def get_indexed_hashes(client, backend: str = DEFAULT_BACKEND) -> Dict[str, str]:

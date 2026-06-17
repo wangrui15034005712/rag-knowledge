@@ -7,8 +7,8 @@ from pathlib import Path
 import time
 import re
 
-from app.config import DOCS_DIR, OLLAMA_BASE_URL, VLLM_BASE_URL, SILICONFLOW_BASE_URL, SILICONFLOW_API_KEY, LM_STUDIO_BASE_URL, DEFAULT_BACKEND
-from app.ingest import ingest_documents, get_file_hash, get_chroma_client, get_indexed_hashes, collection_name_for_backend
+from app.config import DOCS_DIR, OLLAMA_BASE_URL, VLLM_BASE_URL, SILICONFLOW_BASE_URL, SILICONFLOW_API_KEY, LM_STUDIO_BASE_URL, DEFAULT_BACKEND, HYBRID_ENABLED
+from app.ingest import ingest_documents, get_file_hash, get_chroma_client, get_indexed_hashes, collection_name_for_backend, get_knowledge_base_stats
 from app.rag_chain import get_answer_stream, clear_memory
 from app.logger import setup_logger
 
@@ -258,6 +258,13 @@ with st.sidebar:
     ok = check_backend(backend)
     st.caption(f"{'🟢' if ok else '🔴'} {backend}: {'已连接' if ok else '未连接'}")
 
+    # 混合检索开关
+    st.session_state.hybrid_enabled = st.checkbox(
+        "启用混合检索",
+        value=HYBRID_ENABLED,
+        help="向量检索 + BM25 关键词检索，提高召回率"
+    )
+
     # 导入进度统计
     files = get_docs_files()
     indexed_count = sum(
@@ -265,6 +272,19 @@ with st.sidebar:
         if st.session_state.ingest_status[fp] == "已导入"
     )
     st.caption(f"✅ 已导入 {indexed_count}/{len(files)} 个文档")
+
+    # 知识库统计
+    with st.expander("📊 知识库统计", expanded=False):
+        stats = get_knowledge_base_stats(st.session_state.backend)
+        if stats["total_files"] == 0:
+            st.info("知识库为空")
+        else:
+            col_a, col_b = st.columns(2)
+            col_a.metric("文档数", stats["total_files"])
+            col_b.metric("文档块数", stats["total_chunks"])
+            st.divider()
+            for f in stats["files"]:
+                st.caption(f"📄 {f['filename']}: {f['chunks']} 块")
 
 
 # ══════════════════════════════════════════════════════════
@@ -304,7 +324,8 @@ if prompt := st.chat_input("💬 输入问题..."):
 
         try:
             for answer, source_docs in get_answer_stream(
-                prompt, st.session_state.session_id, backend=st.session_state.backend
+                prompt, st.session_state.session_id, backend=st.session_state.backend,
+                hybrid_enabled=st.session_state.get("hybrid_enabled", False)
             ):
                 # answer 不为 None → 文本 token，追加并刷新 UI（带光标 ▌）
                 if answer is not None:

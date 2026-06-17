@@ -31,7 +31,7 @@ SILICONFLOW_API_KEY = os.getenv("SILICONFLOW_API_KEY", "")
 # LM Studio（本地，OpenAI 兼容 API）
 # ============================================================
 LM_STUDIO_BASE_URL = os.getenv("LM_STUDIO_BASE_URL", "http://localhost:1234/v1")
-LM_STUDIO_MODEL = os.getenv("LM_STUDIO_MODEL", "qwen/qwen3-1.7b")
+LM_STUDIO_MODEL = os.getenv("LM_STUDIO_MODEL", "qwen2.5-1.5b-instruct")
 LM_STUDIO_EMBEDDING_MODEL = os.getenv("LM_STUDIO_EMBEDDING_MODEL", "text-embedding-nomic-embed-text-v1.5")
 
 # ============================================================
@@ -67,6 +67,13 @@ LOG_FORMAT = os.getenv("LOG_FORMAT", "%(asctime)s [%(levelname)s] %(name)s: %(me
 RERANK_ENABLED = os.getenv("RERANK_ENABLED", "false").lower() == "true"
 RERANK_TOP_K = int(os.getenv("RERANK_TOP_K", "4"))
 SILICONFLOW_RERANK_MODEL = os.getenv("SILICONFLOW_RERANK_MODEL", "Qwen/Qwen3-Reranker-4B")
+
+# ============================================================
+# 混合检索（向量 + BM25 关键词）
+# ============================================================
+HYBRID_ENABLED = os.getenv("HYBRID_ENABLED", "false").lower() == "true"
+BM25_WEIGHT = float(os.getenv("BM25_WEIGHT", "0.5"))
+RRF_K = int(os.getenv("RRF_K", "10"))
 
 # ============================================================
 # 目录路径

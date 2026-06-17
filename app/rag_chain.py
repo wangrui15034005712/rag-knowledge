@@ -24,6 +24,7 @@ from app.config import (
     LM_STUDIO_BASE_URL, LM_STUDIO_MODEL,
     CHROMA_DB_DIR, TOP_K, MEMORY_WINDOW,
     RERANK_ENABLED, RERANK_TOP_K,
+    HYBRID_ENABLED, BM25_WEIGHT,
 )
 from app.ingest import get_embedding, collection_name_for_backend
 from app.reranker import get_reranker
@@ -157,11 +158,28 @@ def get_llm(backend: str = DEFAULT_BACKEND):
 #
 # 外层包 RunnableWithMessageHistory 管理多轮对话记忆
 
-def build_chain(backend: str = DEFAULT_BACKEND):
-    logger.info(f"构建 RAG 链: backend={backend}, TOP_K={TOP_K}, MEMORY_WINDOW={MEMORY_WINDOW}")
+def build_chain(backend: str = DEFAULT_BACKEND, hybrid_enabled: bool = False):
+    logger.info(f"构建 RAG 链: backend={backend}, TOP_K={TOP_K}, MEMORY_WINDOW={MEMORY_WINDOW}, hybrid={hybrid_enabled}")
     llm = get_llm(backend)
     vector_store = get_vector_store(backend)
-    retriever = vector_store.as_retriever(search_kwargs={"k": TOP_K})
+    vector_retriever = vector_store.as_retriever(search_kwargs={"k": TOP_K})
+
+    # 混合检索：向量检索 + BM25 关键词检索
+    if hybrid_enabled:
+        from app.bm25_retriever import get_bm25_retriever, EnsembleRetriever
+
+        bm25_retriever = get_bm25_retriever(backend, k=TOP_K)
+        if bm25_retriever:
+            retriever = EnsembleRetriever(
+                retrievers=[vector_retriever, bm25_retriever],
+                weights=[1 - BM25_WEIGHT, BM25_WEIGHT]
+            )
+            logger.info(f"混合检索已启用: vector_weight={1-BM25_WEIGHT:.2f}, bm25_weight={BM25_WEIGHT:.2f}")
+        else:
+            logger.warning("混合检索已启用但 BM25 索引构建失败，回退到向量检索")
+            retriever = vector_retriever
+    else:
+        retriever = vector_retriever
 
     # 重排序：RERANK_ENABLED 时，在检索后插入 reranker 精排
     if RERANK_ENABLED:
@@ -191,9 +209,14 @@ def build_chain(backend: str = DEFAULT_BACKEND):
 
     # Prompt 2：基于检索到的文档块（{context}）+ 对话历史 回答问题
     qa_prompt = ChatPromptTemplate.from_messages([
-        ("system", "你是一个基于本地知识库的智能问答助手。请基于以下已知信息回答问题。"
-                   "如果无法从已知信息中找到答案，请如实告知。回答要简洁准确。"
-                   "请全程使用中文思考和回答。\n\n已知信息：\n{context}"),
+        ("system", "你是基于本地知识库的问答助手。严格遵守以下规则：\n"
+                   "1. 仔细阅读【已知信息】中的所有文档块，综合提取答案\n"
+                   "2. 注意理解同义表达，如「上班时间」和「工作时间」是同一个意思\n"
+                   "3. 只能使用【已知信息】中的内容回答，禁止使用任何外部知识\n"
+                   "4. 如果【已知信息】中没有相关内容，直接回答「抱歉，知识库中没有找到相关信息」\n"
+                   "5. 不要猜测、推断或编造任何信息\n"
+                   "6. 回答简洁准确，使用中文\n\n"
+                   "【已知信息】：\n{context}"),
         MessagesPlaceholder("chat_history"),
         ("human", "{input}"),
     ])
@@ -221,11 +244,11 @@ def build_chain(backend: str = DEFAULT_BACKEND):
 #   (None, [Document, ...]) → 检索到的来源文档（最后一个 yield）
 
 def get_answer_stream(
-    query: str, session_id: str, backend: str = DEFAULT_BACKEND
+    query: str, session_id: str, backend: str = DEFAULT_BACKEND, hybrid_enabled: bool = False
 ) -> Generator[Tuple[str, List[Document]], None, None]:
-    logger.info(f"收到用户问题: {query} (backend={backend})")
+    logger.info(f"收到用户问题: {query} (backend={backend}, hybrid={hybrid_enabled})")
 
-    chain = build_chain(backend)
+    chain = build_chain(backend, hybrid_enabled=hybrid_enabled)
 
     config = {"configurable": {"session_id": session_id}}
 
