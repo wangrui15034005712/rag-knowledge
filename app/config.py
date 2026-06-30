@@ -42,8 +42,8 @@ DEFAULT_BACKEND = os.getenv("DEFAULT_BACKEND", "ollama")
 # ============================================================
 # 文本分块参数（导入文档时用于切分）
 # ============================================================
-CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", "500"))
-CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "100"))
+CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", "800"))
+CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "150"))
 
 # ============================================================
 # 检索参数
@@ -74,6 +74,12 @@ SILICONFLOW_RERANK_MODEL = os.getenv("SILICONFLOW_RERANK_MODEL", "Qwen/Qwen3-Rer
 HYBRID_ENABLED = os.getenv("HYBRID_ENABLED", "false").lower() == "true"
 BM25_WEIGHT = float(os.getenv("BM25_WEIGHT", "0.5"))
 RRF_K = int(os.getenv("RRF_K", "10"))
+
+# ============================================================
+# 多查询扩展（MultiQueryRetriever）
+# ============================================================
+MULTI_QUERY_ENABLED = os.getenv("MULTI_QUERY_ENABLED", "true").lower() == "true"
+MULTI_QUERY_COUNT = int(os.getenv("MULTI_QUERY_COUNT", "3"))
 
 # ============================================================
 # 目录路径

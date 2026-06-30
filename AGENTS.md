@@ -44,6 +44,17 @@ docker exec rag-ollama ollama pull bge-m3
 | `app/pages/5_MySQL_Redis连通性测试_版本显示.py` | MySQL/Redis 连通性测试页面 |
 | `app/pages/6_英中翻译.py` | 英中翻译页面（Argos Translate 离线） |
 | `app/pages/7_中英翻译.py` | 中英翻译页面（Argos Translate 离线，zh→en） |
+| `app/pages/8_大模型翻译.py` | 大模型翻译页面（LLM 驱动） |
+| `app/pages/9_Cron表达式工具.py` | Cron 表达式解析与生成工具 |
+| `app/pages/10_正则表达式查看器.py` | 正则表达式测试与可视化 |
+| `app/pages/11_行业动态.py` | 行业新闻聚合页面（RSS） |
+| `app/pages/110_学习资源.py` | 学习资源导航页面 |
+| `app/pages/12_文档对比.py` | 文档差异对比工具（VS Code 风格 diff 视图） |
+| `app/pages/13_HTTP状态码查询.py` | HTTP 状态码速查工具 |
+| `app/pages/14_Emoji搜索.py` | Emoji 搜索与一键复制工具 |
+| `app/pages/15_文字转语音.py` | 文字转语音工具（edge-tts 微软 TTS） |
+| `app/pages/16_AI配音工坊.py` | AI 配音工坊（多角色对话 + SSML + 字幕导出） |
+| `app/pages/17_ChatTTS语音合成.py` | ChatTTS 语音合成（随机音色 + 声音克隆 + 批量合成） |
 | `scripts/download_argos_model.py` | 预下载 en-zh 和 zh-en 翻译模型到 `models/argos-translate/` |
 | `models/argos-translate/packages/` | en-zh / zh-en 离线翻译模型文件（CTranslate2 格式，不入库） |
 | `docs/` | 上传文档存放目录 |

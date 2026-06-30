@@ -25,6 +25,7 @@ from app.config import (
     CHROMA_DB_DIR, TOP_K, MEMORY_WINDOW,
     RERANK_ENABLED, RERANK_TOP_K,
     HYBRID_ENABLED, BM25_WEIGHT,
+    MULTI_QUERY_ENABLED,
 )
 from app.ingest import get_embedding, collection_name_for_backend
 from app.reranker import get_reranker
@@ -162,7 +163,10 @@ def build_chain(backend: str = DEFAULT_BACKEND, hybrid_enabled: bool = False):
     logger.info(f"构建 RAG 链: backend={backend}, TOP_K={TOP_K}, MEMORY_WINDOW={MEMORY_WINDOW}, hybrid={hybrid_enabled}")
     llm = get_llm(backend)
     vector_store = get_vector_store(backend)
-    vector_retriever = vector_store.as_retriever(search_kwargs={"k": TOP_K})
+    vector_retriever = vector_store.as_retriever(
+        search_type="mmr",
+        search_kwargs={"k": TOP_K, "fetch_k": TOP_K * 3, "lambda_mult": 0.7},
+    )
 
     # 混合检索：向量检索 + BM25 关键词检索
     if hybrid_enabled:
@@ -194,12 +198,29 @@ def build_chain(backend: str = DEFAULT_BACKEND, hybrid_enabled: bool = False):
             logger.info(msg)
             print(f"\n{'=' * 60}\n{msg}\n{'=' * 60}", flush=True)
 
+    # MultiQuery：让 LLM 生成多个不同表述的查询，扩大召回面
+    if MULTI_QUERY_ENABLED:
+        from langchain_classic.retrievers.multi_query import MultiQueryRetriever
+        retriever = MultiQueryRetriever.from_llm(
+            retriever=retriever,
+            llm=llm,
+            include_original=True,
+        )
+        logger.info(f"MultiQuery 已启用: include_original=True")
+
     # Prompt 1：将对话历史 + 用户问题改写为独立搜索查询（用于检索）
     #
     # 用户说 "它多少钱" 但前面聊过 "iPhone15"，LLM 改写后变成 "iPhone15 价格"
     # ⚠️ 如果 LLM 是 thinking 模型，这里会输出思考过程而非搜索词，导致检索跑偏
     contextualize_prompt = ChatPromptTemplate.from_messages([
-        ("system", "基于对话历史和用户最新问题，生成一个独立表述的搜索查询。"),
+        ("system",
+         "你是一个搜索查询优化专家。将用户问题改写为一个独立、完整的搜索查询，用于向量检索。\n\n"
+         "规则：\n"
+         "1. 将用户问题改写为完整的自然语言查询，不要关键词堆叠\n"
+         "2. 保留核心实体、概念、技术术语，明确表达问题意图\n"
+         "3. 使用与用户问题相同的语言（中文问题用中文，英文问题用英文）\n"
+         "4. 如果用户问题已经独立且明确，直接返回原问题\n"
+         "5. 输出仅包含搜索查询本身，不要多余文字"),
         MessagesPlaceholder("chat_history"),
         ("human", "{input}"),
     ])
@@ -211,11 +232,10 @@ def build_chain(backend: str = DEFAULT_BACKEND, hybrid_enabled: bool = False):
     qa_prompt = ChatPromptTemplate.from_messages([
         ("system", "你是基于本地知识库的问答助手。严格遵守以下规则：\n"
                    "1. 仔细阅读【已知信息】中的所有文档块，综合提取答案\n"
-                   "2. 注意理解同义表达，如「上班时间」和「工作时间」是同一个意思\n"
-                   "3. 只能使用【已知信息】中的内容回答，禁止使用任何外部知识\n"
-                   "4. 如果【已知信息】中没有相关内容，直接回答「抱歉，知识库中没有找到相关信息」\n"
-                   "5. 不要猜测、推断或编造任何信息\n"
-                   "6. 回答简洁准确，使用中文\n\n"
+                   "2. 只能使用【已知信息】中的内容回答，禁止使用任何外部知识\n"
+                   "3. 如果【已知信息】中没有相关内容，直接回答「抱歉，知识库中没有找到相关信息」\n"
+                   "4. 不要猜测、推断或编造任何信息\n"
+                   "5. 回答简洁准确，使用中文\n\n"
                    "【已知信息】：\n{context}"),
         MessagesPlaceholder("chat_history"),
         ("human", "{input}"),

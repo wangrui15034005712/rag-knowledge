@@ -23,3 +23,5 @@ docs/
 
 # 翻译模型文件（argos-translate 离线模型，约 100MB）
 models/argos-translate/
+
+node_modules/
