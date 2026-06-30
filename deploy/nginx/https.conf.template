@@ -1,0 +1,125 @@
+worker_processes {{worker_processes}};
+error_log /var/log/nginx/error.log {{log_level}};
+pid /var/run/nginx.pid;
+
+events {
+    worker_connections {{worker_connections}};
+}
+
+http {
+    include       /etc/nginx/mime.types;
+    default_type  application/octet-stream;
+
+    log_format main '$remote_addr - $remote_user [$time_local] "$request" '
+                    '$status $body_bytes_sent "$http_referer" '
+                    '"$http_user_agent" "$http_x_forwarded_for"';
+
+    access_log /var/log/nginx/access.log main;
+
+    sendfile on;
+    tcp_nopush on;
+    tcp_nodelay on;
+    keepalive_timeout 65;
+    types_hash_max_size 2048;
+    client_max_body_size {{client_max_body_size}};
+
+    {{#gzip}}
+    gzip on;
+    gzip_vary on;
+    gzip_proxied any;
+    gzip_comp_level 6;
+    gzip_types {{gzip_types}};
+    {{/gzip}}
+
+    proxy_connect_timeout {{proxy_connect_timeout}}s;
+    proxy_send_timeout {{proxy_send_timeout}}s;
+    proxy_read_timeout {{proxy_read_timeout}}s;
+
+    # SSL shared settings
+    ssl_protocols {{ssl_protocols}};
+    ssl_ciphers {{ssl_ciphers}};
+    ssl_prefer_server_ciphers on;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 10m;
+
+    # HTTP to HTTPS redirect
+    server {
+        listen {{nginx_http_port}};
+        server_name _;
+        return 444;
+    }
+
+    {{#sites}}
+    {{#enabled}}
+    upstream {{name}}_backend {
+        server 127.0.0.1:{{upstream_port}};
+    }
+
+    # HTTP to HTTPS redirect for {{name}}
+    server {
+        listen {{nginx_http_port}};
+        server_name {{domain}};
+        return 301 https://$host$request_uri;
+    }
+
+    # HTTPS server for {{name}}
+    server {
+        listen {{nginx_https_port}} ssl http2;
+        server_name {{domain}};
+
+        ssl_certificate {{ssl_cert_path}};
+        ssl_certificate_key {{ssl_key_path}};
+
+        {{#access_log}}
+        access_log /var/log/nginx/{{name}}_access.log main;
+        {{/access_log}}
+        {{#error_log}}
+        error_log /var/log/nginx/{{name}}_error.log {{log_level}};
+        {{/error_log}}
+
+        {{#custom_headers}}
+        {{#X-Frame-Options}}
+        add_header X-Frame-Options "{{X-Frame-Options}}" always;
+        {{/X-Frame-Options}}
+        {{#X-Content-Type-Options}}
+        add_header X-Content-Type-Options "{{X-Content-Type-Options}}" always;
+        {{/X-Content-Type-Options}}
+        {{/custom_headers}}
+
+        # HSTS
+        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+
+        location / {
+            proxy_pass http://{{name}}_backend;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto https;
+
+            {{#websocket}}
+            # WebSocket support
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
+            {{/websocket}}
+        }
+
+        {{#websocket}}
+        # WebSocket timeout
+        proxy_read_timeout 86400s;
+        proxy_send_timeout 86400s;
+        {{/websocket}}
+
+        {{#static_cache_days}}
+        # Static file caching
+        location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
+            proxy_pass http://{{name}}_backend;
+            proxy_set_header Host $host;
+            expires {{static_cache_days}}d;
+            add_header Cache-Control "public, immutable";
+        }
+        {{/static_cache_days}}
+    }
+    {{/enabled}}
+    {{/sites}}
+}

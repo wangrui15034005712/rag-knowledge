@@ -1,0 +1,65 @@
+{
+  "global": {
+    "nginx_http_port": 80,
+    "nginx_https_port": 443,
+    "timezone": "Asia/Shanghai",
+    "log_level": "warn",
+    "worker_processes": "auto",
+    "worker_connections": 1024,
+    "client_max_body_size": "50m",
+    "ssl_protocols": "TLSv1.2 TLSv1.3",
+    "ssl_ciphers": "ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384",
+    "proxy_connect_timeout": 60,
+    "proxy_send_timeout": 60,
+    "proxy_read_timeout": 60,
+    "gzip": true,
+    "gzip_types": "text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript"
+  },
+  "sites": [
+    {
+      "name": "rag-knowledge",
+      "domain": "rag.example.com",
+      "enabled": true,
+      "ssl": false,
+      "ssl_cert_path": "",
+      "ssl_key_path": "",
+      "upstream_port": 8501,
+      "container_name": "rag-knowledge",
+      "project_path": "/opt/rag-test",
+      "compose_profile": "",
+      "env_vars": {
+        "DEFAULT_BACKEND": "siliconflow",
+        "ENABLE_TRANSLATION": "false"
+      },
+      "custom_headers": {
+        "X-Frame-Options": "SAMEORIGIN",
+        "X-Content-Type-Options": "nosniff"
+      },
+      "websocket": true,
+      "static_cache_days": 7,
+      "access_log": true,
+      "error_log": true
+    },
+    {
+      "name": "myapp",
+      "domain": "app.example.com",
+      "enabled": true,
+      "ssl": false,
+      "ssl_cert_path": "",
+      "ssl_key_path": "",
+      "upstream_port": 3000,
+      "container_name": "myapp",
+      "project_path": "/opt/myapp",
+      "compose_profile": "",
+      "env_vars": {},
+      "custom_headers": {
+        "X-Frame-Options": "DENY",
+        "X-Content-Type-Options": "nosniff"
+      },
+      "websocket": false,
+      "static_cache_days": 30,
+      "access_log": true,
+      "error_log": true
+    }
+  ]
+}

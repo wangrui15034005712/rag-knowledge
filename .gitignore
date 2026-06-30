@@ -25,3 +25,6 @@ docs/
 models/argos-translate/
 
 node_modules/
+
+# opencode IDE 内部目录
+.mimocode/
